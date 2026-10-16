@@ -8,7 +8,7 @@ Everything below is platform neutral except the section "Platform notes".
 
 ## What the app does
 
-1. **Settings:** the user picks the data root folder once. The app remembers it and reopens it on the next start. A setting also lets the user change the folder later.
+1. **Settings:** the user picks the data root folder once. The app remembers it and reopens it on the next start. The settings also let the user change the folder later and enter their **user name** (see "Actor" below).
 2. **Project list:** every direct subfolder of the root that contains a `project.md` is a project. Show the project name, the number of open tasks and the most recent `updatedAt` across its tasks.
 3. **Task list:** selecting a project opens its tasks. The project name is shown in a header. Closed tasks are hidden by default, with a switch to show them.
 4. **Grouping:** the user can group the task list by one of: none, creation date, modification date, task type, task status. See "Grouping and sorting".
@@ -37,11 +37,11 @@ Rules that the schemas cannot express:
 
 ## Behavior rules
 
-- **Create task:** new UUID4 as `id` and file name, `status: open`, `imagePath: null`, `createdAt` = `updatedAt` = now (UTC), `createdBy` = `updatedBy` = the actor name (see below), labels trimmed, empty ones dropped, duplicates removed.
-- **Edit** (title, description, labels): set `updatedAt` = now and `updatedBy` = actor. Never change `id`, `createdAt`, `createdBy` or the file name, even when the title changes.
+- **Create task:** new UUID4 as `id` and file name, `status: open`, `imagePath: null`, `createdAt` = `updatedAt` = now (UTC), `createdBy` = `updatedBy` = the actor (see below), labels trimmed, empty ones dropped, duplicates removed.
+- **Edit** (title, description, labels): set `updatedAt` = now and `updatedBy` = the actor. Never change `id`, `createdAt`, `createdBy` or the file name, even when the title changes.
 - **Close / reopen:** flip `status` between `open` and `closed`, set `updatedAt` and `updatedBy`. Closing is the only way to finish a task. **There is no delete anywhere.**
 - **Comment:** append `{body, createdAt}` to `comments` and set `updatedAt` and `updatedBy`. Comments cannot be edited or removed.
-- **Actor:** a setting, default `android` or `ios` (the platform name). Written to `createdBy` and `updatedBy`.
+- **Actor:** the user's name, entered in the settings and stored on the device. It is written to `createdBy` and `updatedBy`. It is free text. Until it is set, the app asks for it before the first write and does not write anything without it.
 - **Closed status labels** (display only, the data stays `open`/`closed`): todo → "Done", question → "Answered", decision → "Decided", feature → "Implemented", bug → "Fixed".
 - **Writing:** write to a temporary file and then replace the target, so a crash never leaves a half-written file. If the platform makes that impossible, say so and write as safely as it allows. Before overwriting an existing file, copy it to `<project>/.backup/<file name>.bak` (one generation).
 - **Concurrent changes:** there is no locking, last writer wins. Before every write, re-read the file. If its `updatedAt` differs from what the app loaded, do not overwrite silently. Show the conflict and let the user choose to reload or overwrite.
