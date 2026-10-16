@@ -1,0 +1,488 @@
+# ÜBERHOLT — siehe SPEC.md Revision 2026-10-16 "Architektur-Konsolidierung (4. Pivot)".
+# Service/H2/JDBC-Architektur wurde durch dateibasierte Persistenz ersetzt (kein HTTP-Service
+# mehr). Diese Datei bleibt als historischer Beleg liegen, ist NICHT mehr der maßgebliche
+# Contract. Maßgeblich jetzt: SPEC/project.schema.json, SPEC/task.schema.json.
+openapi: 3.0.3
+info:
+  title: "ÜBERHOLT — Lagebericht Service API (verworfene Service-Architektur, siehe SPEC.md)"
+  version: "1.0.0"
+  description: >
+    Maßgeblicher API-Contract für SPEC.md Abschnitt „Service-Kontrakt". Lokaler Service
+    (Java/Spring Boot), einzige Instanz mit JDBC-Zugriff auf die H2-Datei (siehe SPEC.md ADR
+    „Service statt Direkt-DB-Zugriff"). Nur localhost, kein Auth — Einzelnutzer-Tool.
+servers:
+  - url: http://localhost:8787/api/v1
+
+paths:
+  /health:
+    get:
+      summary: Lebenszeichen des Service
+      operationId: health
+      responses:
+        "200":
+          description: Service läuft und hat die DB-Datei erfolgreich geöffnet.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+
+  /projects:
+    get:
+      summary: Alle Projekte
+      operationId: listProjects
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectList"
+    post:
+      summary: Projekt anlegen
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+      responses:
+        "201":
+          description: Angelegt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Projektname existiert bereits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks:
+    get:
+      summary: Tasks auflisten/filtern
+      operationId: listTasks
+      parameters:
+        - name: projectName
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/TaskType"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/TaskStatus"
+        - name: staleDays
+          in: query
+          description: >
+            Nur Tasks, deren updatedAt mindestens N Tage zurückliegt. Zentraler Filter für den
+            eigentlichen Zweck des Tools ("was ist in stillen Projekten liegen geblieben").
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskList"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+    post:
+      summary: Task anlegen
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [projectName, type, title]
+              properties:
+                projectName:
+                  type: string
+                  description: Muss ein existierendes Projekt referenzieren (kein Auto-Create).
+                type:
+                  $ref: "#/components/schemas/TaskType"
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 300
+                description:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Angelegt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          description: projectName existiert nicht
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{taskId}:
+    get:
+      summary: Einzelnen Task lesen
+      operationId: getTask
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Titel/Beschreibung korrigieren
+      description: >
+        Kein Delete im gesamten Contract (User-Entscheidung, 2026-10-16: "Mark as finished statt
+        delete ist der Weg") — dafür PATCH, um Tippfehler/Präzisierungen nachzutragen, ohne die
+        Historie zu verlieren. Mindestens eines von title/description muss gesetzt sein.
+      operationId: updateTask
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 300
+                description:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: OK (updatedAt wurde aktualisiert)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /tasks/{taskId}/close:
+    post:
+      summary: Task als erledigt markieren (status=closed, updatedAt wird gesetzt)
+      operationId: closeTask
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /tasks/{taskId}/reopen:
+    post:
+      summary: Task wieder öffnen (status=open, updatedAt wird gesetzt)
+      operationId: reopenTask
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /tasks/{taskId}/image:
+    post:
+      summary: Bild an Task anhängen (ersetzt ein vorhandenes)
+      description: >
+        Service speichert die Datei im DB-Verzeichnis unter `images/task-{taskId}-{uuid}.{ext}`
+        und setzt `imagePath` relativ dazu — siehe SPEC.md „image_path statt BLOB". Client
+        schickt Bytes, keinen Pfad: vermeidet Annahmen darüber, dass Client und Service dieselbe
+        Dateisystemsicht haben (hält für ein späteres Browser-UI in Phase 2 offen, ohne das hier
+        zu entscheiden).
+      operationId: uploadTaskImage
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: "Kein/ungültiges Bild (erlaubt: png, jpg, jpeg, gif, webp; max. 10 MiB)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Bild von Task entfernen
+      operationId: deleteTaskImage
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: OK (imagePath wieder null)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /tasks/{taskId}/comments:
+    get:
+      summary: Kommentare eines Tasks
+      operationId: listComments
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentList"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      summary: Kommentar anlegen
+      operationId: createComment
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+      responses:
+        "201":
+          description: Angelegt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  responses:
+    ValidationError:
+      description: Request verletzt ein Feld-Constraint (fehlendes Pflichtfeld, ungültiger Enum-Wert, ...)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Referenzierte Entität existiert nicht
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    TaskType:
+      type: string
+      enum: [todo, question, decision, feature, bug]
+    TaskStatus:
+      type: string
+      enum: [open, closed]
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - NOT_FOUND
+                - DUPLICATE_NAME
+                - INTERNAL_ERROR
+            message:
+              type: string
+              description: Klartext, nicht lokalisiert.
+
+    Project:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ProjectList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+        total:
+          type: integer
+
+    Task:
+      type: object
+      required: [id, projectId, projectName, type, title, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        projectId:
+          type: integer
+          format: int64
+        projectName:
+          type: string
+          description: Komfort-Feld, abgeleitet aus projectId — Response-only.
+        type:
+          $ref: "#/components/schemas/TaskType"
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        imagePath:
+          type: string
+          nullable: true
+          description: Relativ zum DB-Verzeichnis. Null, solange kein Bild hochgeladen wurde.
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          description: >
+            Wird bei jeder inhaltlichen Änderung (inkl. close/reopen, Bild-Upload) aktualisiert —
+            zentrales Feld für den „seit wann still"-Zweck des Tools, siehe SPEC.md.
+
+    TaskList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        total:
+          type: integer
+
+    Comment:
+      type: object
+      required: [id, taskId, body, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        taskId:
+          type: integer
+          format: int64
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CommentList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+        total:
+          type: integer

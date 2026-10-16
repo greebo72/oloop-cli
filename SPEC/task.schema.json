@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lagebericht.local/schema/task.schema.json",
+  "title": "Task",
+  "description": "Frontmatter-Schema für tasks/<task-id>.md. Markdown-Body des Files = description. Maßgeblich bei Widerspruch zu SPEC.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "projectId", "type", "title", "status", "createdAt", "updatedAt"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID4. Identisch mit dem Dateinamen (ohne .md). Bleibt über die Lebenszeit des Tasks stabil, auch nach Titel-Edits."
+    },
+    "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Muss ein existierendes Project.id referenzieren."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["todo", "question", "decision", "feature", "bug"]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Editierbar (updatedAt wird dabei aktualisiert). Dateiname ändert sich dabei NICHT."
+    },
+    "imagePath": {
+      "type": ["string", "null"],
+      "description": "Relativ zum Projekt-Ordner, z. B. 'images/<task-id>.png'. Null, solange kein Bild gesetzt."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "closed"],
+      "description": "Label pro type in der Darstellungsschicht (z. B. todo->Erledigt, question->Geklärt). Datenmodell kennt nur open/closed. Kein Delete — dies ist der einzige Abschluss-Mechanismus."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC, ISO 8601 mit Z."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC, ISO 8601 mit Z. Aktualisiert bei jeder inhaltlichen Änderung (Edit, close/reopen, Bild, Kommentar) — zentrales Feld für den 'seit wann still'-Zweck des Tools."
+    },
+    "comments": {
+      "type": "array",
+      "description": "Append-only, kein Delete, keine Edits. Chronologisch nach createdAt.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["body", "createdAt"],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}
