@@ -51,6 +51,13 @@ def cmd_project_edit(store, args):
     print(f"Projekt geändert: {p.name}")
 
 
+def cmd_project_find(store, args):
+    p = store.find_project_by_path(args.path, args.host)
+    if args.json:
+        return _dump(p.to_dict())
+    print(p.name)
+
+
 def cmd_project_list(store, args):
     projects = store.list_projects()
     if args.json:
@@ -139,6 +146,9 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--reference-path", help="Arbeitsverzeichnis; leer entfernt")
         p.add_argument("--host", help="Rechnername; Default bei Pfad: dieser Rechner")
     leaf(proj, "list", cmd_project_list, True)
+    p = leaf(proj, "find", cmd_project_find, True)
+    p.add_argument("--path", default=".", help="Default: aktuelles Verzeichnis")
+    p.add_argument("--host", help="Default: dieser Rechner")
 
     task = sub.add_parser("task").add_subparsers(dest="cmd", required=True)
     p = leaf(task, "add", cmd_task_add)

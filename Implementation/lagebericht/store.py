@@ -248,6 +248,24 @@ class Store:
                 return p
         raise NotFound(f"Projekt nicht gefunden: {name!r}")
 
+    def find_project_by_path(
+        self, path: str | os.PathLike[str], host: str | None = None
+    ) -> Project:
+        """Projekt, dessen referencePath path enthält (längster Treffer, passender Host)."""
+        target = Path(path).expanduser().resolve()
+        host = host or socket.gethostname()
+        best: tuple[int, Project] | None = None
+        for p in self.list_projects():
+            if not p.referencePath or p.referenceHost not in (None, host):
+                continue
+            ref = Path(p.referencePath).expanduser().resolve()
+            if target == ref or ref in target.parents:
+                if best is None or len(ref.parts) > best[0]:
+                    best = (len(ref.parts), p)
+        if best is None:
+            raise NotFound(f"Kein Projekt für Pfad {str(target)!r} auf {host!r}")
+        return best[1]
+
     def add_project(
         self,
         name: str,

@@ -55,6 +55,19 @@ def test_project_reference(store):
     assert p.id == store.get_project("Ref").id
 
 
+def test_project_find_by_path(store, tmp_path):
+    outer, inner = tmp_path / "a", tmp_path / "a" / "b"
+    (inner / "sub").mkdir(parents=True)
+    store.add_project("Outer", reference_path=str(outer), reference_host="h")
+    store.add_project("Inner", reference_path=str(inner), reference_host="h")
+    assert store.find_project_by_path(inner / "sub", "h").name == "Inner"
+    assert store.find_project_by_path(outer, "h").name == "Outer"
+    with pytest.raises(NotFound):
+        store.find_project_by_path(outer, "other-host")
+    with pytest.raises(NotFound):
+        store.find_project_by_path(tmp_path, "h")
+
+
 def test_task_roundtrip(store):
     store.add_project("A")
     t = store.add_task("A", "todo", "Titel: mit # Sonderzeichen", "Beschreibung\n\nzwei Absätze äöü")
