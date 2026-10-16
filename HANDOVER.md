@@ -1,42 +1,89 @@
 # HANDOVER — Lagebericht
 
-**Stand:** 2026-10-16, SPEC-Entwurf steht (vierter Architektur-Pivot: dateibasierte Persistenz,
-kein Service, reines Python), noch nicht freigegeben. Keine Implementierung.
+**Stand:** 2026-10-16, v0.1.0 getaggt und gepusht (`greebo72/md_todo`, `origin/main`). SPEC-Entwurf
+weiterhin formal nicht freigegeben, aber AP1, AP2'' und AP4'' sind umgesetzt und getestet
+(18 Tests). Das CLI ist per `uv tool install` global installiert und für Claude Code
+eingerichtet (siehe „Einrichtung"). Noch kein einziges echtes Projekt im Daten-Root angelegt.
 
 ## Leseordnung
 
-1. `SPEC/SPEC.md` — fang bei **„Verworfene Vorstufen"** an (direkt nach den Revisionszeilen): vier
-   echte Architektur-Pivots in einer Session, kurz zusammengefasst, damit du nicht die ganze
-   Historie rekonstruieren musst. Danach: Zweck, Nicht-Ziele, **ADR „Dateibasierte Persistenz, kein
-   Service"** (aktuellster Stand), Abschnitt „Dateiformat" (Layout, Frontmatter, ID-Schema).
-2. `Implementation/lagebericht/schemas/{project,task}.schema.json` — maßgeblich für die Frontmatter-Struktur.
-3. `SPEC/api-contract.yaml` — **überholt**, Kopfzeile sagt das auch. Service/H2/JDBC-Architektur,
-   komplett verworfen. Nur noch historischer Beleg (z. B. falls Filterparameter-Namen wie
-   `staleDays`, `projectName` als Referenz für die CLI-Flags gebraucht werden — fachlich identisch
-   geblieben, nur nicht mehr über HTTP).
-4. `PLAN.md` — Arbeitspakete, aktuell relevant: **AP1 (Setup, Struktur/git erledigt), AP2''
-   (Dateiformat-Modul), AP4'' (CLI-Befehle), AP4d (MCP-Wrapper, optional), AP6 (Phase 2 Desktop-App,
-   eigene Freigabe)**. Alles mit Strich-Präfix (AP2–AP5, AP3', AP3b, AP4', AP4c) ist verworfen,
-   durchgestrichen stehen gelassen, nicht der Stand.
-5. `Implementation/` — noch leer.
+1. `SPEC/SPEC.md` — fang bei **„Verworfene Vorstufen"** an: vier Architektur-Pivots, kurz
+   zusammengefasst. Danach Zweck, Nicht-Ziele, ADR „Dateibasierte Persistenz, kein Service",
+   Abschnitt „Dateiformat".
+2. `Implementation/lagebericht/schemas/{project,task}.schema.json` — maßgeblich für die
+   Frontmatter-Struktur (liegen im Paket, damit die installierte Wheel validieren kann).
+3. `SPEC/api-contract.yaml` — **überholt** (HTTP/H2-Architektur). Nur noch historischer Beleg.
+4. `PLAN.md` — AP1, AP2'', AP4'' erledigt. Offen: **AP4d (MCP-Wrapper, optional, zurückgestellt)**
+   und **AP6 (Phase 2 Desktop-App, eigene Freigabe)**. Durchgestrichene APs sind verworfen.
+5. `Implementation/` — `lagebericht/store.py` (Store), `lagebericht/cli.py` (CLI), `tests/`.
+
+## Implementierungsstand
+
+- **Store** (`store.py`): Projekte, Tasks, Kommentare, Hauptbild (`set_image`), zusätzliche Bilder
+  (`add_attachment`), Edit (Titel/Beschreibung/Labels), close/reopen, Filter (`project`, `type`,
+  `status`, `label`, `stale_days`), ID-Präfix-Auflösung (`resolve_task_id`, min. 4 Zeichen).
+  Atomares Schreiben, Backup `<projekt>/.backup/<datei>.bak` (eine Generation), Validierung gegen
+  die Schemas beim Lesen und Schreiben. Kein Delete.
+- **Task-Felder** zusätzlich zur ursprünglichen Spec: `createdBy`, `updatedBy` (Pflicht, Quelle:
+  Parameter, sonst `$LAGEBERICHT_ACTOR`, sonst OS-Benutzer) und `labels` (Liste eindeutiger Strings,
+  Pflicht, leer erlaubt).
+- **CLI**: `project add/list`, `task add/list/show/edit/close/reopen/image`, `comment add`.
+  `--json` auf `project list`, `task list`, `task show`. `task image <id> <datei>` setzt das
+  Hauptbild, `--embed` legt ein Zusatzbild als `images/<task-id>-<n>.<ext>` ab und gibt den
+  Markdown-Link (`../images/...`, relativ zur Task-Datei) für die Description aus.
+- **Release**: `uv build` in `Implementation/` erzeugt `dist/` (nicht im Git). Geprüft: Wheel in
+  frischer venv außerhalb des Workspace installiert, CLI läuft.
+
+## Einrichtung (diese Maschine)
+
+- Installiert über `uv tool install <wheel>`, Befehl unter `~/.local/bin/lagebericht`. Nach
+  Code-Änderungen neu bauen und `uv tool install --force <wheel>`.
+- **Daten-Root:** `/Users/user/Google Drive/Meine Ablage/30_User/99_MD_NOTES` (Google-Drive-Ordner).
+- `~/.zshrc`: `LAGEBERICHT_ROOT`. `~/.claude/settings.json` (Backup: `settings.json.bak`):
+  `env.LAGEBERICHT_ROOT`, `env.LAGEBERICHT_ACTOR=claude`, `permissions.allow` `Bash(lagebericht *)`.
+- `~/.claude/CLAUDE.md` (neu angelegt): Anleitung, wann/wie Claude `lagebericht` nutzt.
+- Claude Code liest `env` und `CLAUDE.md` nur beim Start. Nach dem Neustart zuerst
+  `lagebericht project add <name>` und einen Test-Task anlegen, um den Ablauf mit echtem Root zu
+  prüfen (wurde bisher nur gegen Temp-Verzeichnisse getestet).
+
+## Entscheidungen dieser Session
+
+- MCP-Wrapper vorerst nicht nötig: Claude Code ruft das CLI direkt per Bash auf (`--json`). MCP nur
+  sinnvoll, falls Claude Desktop o. Ä. ohne Shell angebunden werden soll.
+- Mehrere Bilder pro Task über Links in der Description statt `images: [..]` im Schema. Ob das
+  Einbetten vereinfacht wird (z. B. `--embed` hängt den Link selbst an die Description an), entscheidet
+  der User, nachdem er die Desktop-App benutzt hat.
+- Schemas liegen im Paket statt in `SPEC/`; Doku-Verweise sind angepasst.
+- Ordnername eines Projekts = Slug des Namens (nicht die UUID). Das Schema beschrieb die `id` früher
+  als „identisch mit dem Ordnernamen", die Beschreibung im Schema ist noch ungenau.
+- Backup liegt pro Projekt (`<projekt>/.backup/`), weil `project.md` in jedem Projekt gleich heißt.
 
 ## Fallen
 
-- **Nicht mit `-password ""` gegen H2-Tools aufrufen aus PowerShell `&`** — leere
-  String-Argumente werden beim nativen Aufruf stillschweigend verschluckt. Nur noch historisch
-  relevant (kein H2 mehr im Projekt), aber sachlich weiterhin wahr, falls H2 je wieder auftaucht.
-- ~~OneDrive-Konfliktkopie-Muster unverifiziert~~ / ~~Service-Installation braucht UAC~~ /
-  ~~DB-Pfad über `application.yaml`~~ — **alles gegenstandslos.** Kein Service, kein H2, kein
-  OneDrive-Zwang mehr (vierter Pivot). Siehe SPEC.md „Verworfene Vorstufen" für den Kontext.
-- **Daten-Root-Pfad ist konfigurierbar, aber noch nicht gesetzt.** SPEC legt nur fest: Wert kommt
-  aus CLI-Config/ENV, kein Hardcoding. Vor dem ersten Lauf (AP2''/AP4'') muss der User einen
-  konkreten Pfad festlegen.
-- **Kein Lock bei gleichzeitigem Schreibzugriff** — bewusste Lücke (SPEC-ADR), nicht vergessen.
-  Mitigation ist atomares Schreiben (Temp-Datei + Rename), nicht Verhinderung des Race selbst.
+- **Google Drive als Daten-Root:** Die SPEC schließt Mehrgeräte-Betrieb aus (kein Lock, keine
+  Konfliktkopie-Erkennung). Auf einem Rechner meist unkritisch, aber der Sync kann bei vielen kleinen
+  Schreibvorgängen kurz alte Versionen oder Konfliktkopien erzeugen. Nicht von zwei Rechnern
+  gleichzeitig nutzen.
+- **Kein Lock bei gleichzeitigem Schreibzugriff** — bewusste Lücke (SPEC-ADR). Mitigation: atomares
+  Schreiben, nicht Verhinderung des Race.
+- **Bestehende Task-Dateien ohne `createdBy`/`updatedBy`/`labels` sind ungültig** (Pflichtfelder).
+  Gab zum Zeitpunkt der Änderung keine echten Daten. Falls doch welche existieren: Migration nötig
+  oder Felder optional machen.
+- **`task edit -d` ersetzt die komplette Description** — eingebettete Bild-Links gehen dabei verloren,
+  wenn sie nicht im neuen Text stehen.
+- Ein zweites Hauptbild mit anderer Endung überschreibt das erste nicht, die alte Datei bleibt
+  verwaist liegen (kein Delete).
 - Vorläufer-Prototyp als Cloud-Artifact: `claude.ai/code/artifact/ad6da2b6-5b14-488b-ae53-
-  9e59e11f8467` („Lagebericht") — Optik/Struktur dort vom User abgenommen, dient Phase 2
-  (Desktop-App) als Vorlage für den Look. Nicht die Datenquelle für dieses Projekt.
-- Dieses Projekt entstand komplett in einer einzigen Claude-Code-Session (2026-10-16) — vier
-  Architektur-Pivots nacheinander, jeder eine echte Vereinfachung. Eine neue Session, die hier
-  weitermacht, hat diesen Verlauf nicht im Kontext — SPEC.md „Verworfene Vorstufen" plus dieses
-  HANDOVER sollten reichen, um ohne Nachfragen direkt bei AP2'' weiterzumachen.
+  9e59e11f8467` („Lagebericht") — Vorlage für den Look der Phase-2-Desktop-App, nicht Datenquelle.
+- Historisch: H2-Tools aus PowerShell nicht mit `-password ""` aufrufen (leere Argumente werden
+  verschluckt). Kein H2 mehr im Projekt.
+
+## Nächste Schritte
+
+1. Nach Neustart: erstes Projekt und Task gegen den echten Daten-Root anlegen, prüfen, dass Claude
+   das Tool anhand der `CLAUDE.md` selbstständig nutzt.
+2. Etwas gelebte Nutzung über das CLI, dann entscheiden: AP4d (MCP) überhaupt nötig?
+3. AP6 (Desktop-App): eigenes Spec-Kapitel, Toolkit-Wahl (Tauri/Wails/native statt Electron),
+   „seit wann still"-Ansicht aus `updatedAt`. Erst nach Nutzung und eigener Freigabe.
+4. Offen/klein: Schema-Beschreibung von `project.id` korrigieren, SPEC-Status auf „freigegeben"
+   setzen, falls gewünscht.
