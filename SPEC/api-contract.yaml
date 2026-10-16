@@ -1,7 +1,7 @@
 # ÜBERHOLT — siehe SPEC.md Revision 2026-10-16 "Architektur-Konsolidierung (4. Pivot)".
 # Service/H2/JDBC-Architektur wurde durch dateibasierte Persistenz ersetzt (kein HTTP-Service
 # mehr). Diese Datei bleibt als historischer Beleg liegen, ist NICHT mehr der maßgebliche
-# Contract. Maßgeblich jetzt: SPEC/project.schema.json, SPEC/task.schema.json.
+# Contract. Maßgeblich jetzt: Implementation/lagebericht/schemas/{project,task}.schema.json.
 openapi: 3.0.3
 info:
   title: "ÜBERHOLT — Lagebericht Service API (verworfene Service-Architektur, siehe SPEC.md)"

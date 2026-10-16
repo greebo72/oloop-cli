@@ -9,7 +9,7 @@ kein Service, reines Python), noch nicht freigegeben. Keine Implementierung.
    echte Architektur-Pivots in einer Session, kurz zusammengefasst, damit du nicht die ganze
    Historie rekonstruieren musst. Danach: Zweck, Nicht-Ziele, **ADR „Dateibasierte Persistenz, kein
    Service"** (aktuellster Stand), Abschnitt „Dateiformat" (Layout, Frontmatter, ID-Schema).
-2. `SPEC/project.schema.json`, `SPEC/task.schema.json` — maßgeblich für die Frontmatter-Struktur.
+2. `Implementation/lagebericht/schemas/{project,task}.schema.json` — maßgeblich für die Frontmatter-Struktur.
 3. `SPEC/api-contract.yaml` — **überholt**, Kopfzeile sagt das auch. Service/H2/JDBC-Architektur,
    komplett verworfen. Nur noch historischer Beleg (z. B. falls Filterparameter-Namen wie
    `staleDays`, `projectName` als Referenz für die CLI-Flags gebraucht werden — fachlich identisch

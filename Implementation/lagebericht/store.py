@@ -33,7 +33,7 @@ ENV_ACTOR = "LAGEBERICHT_ACTOR"
 TASK_TYPES = ("todo", "question", "decision", "feature", "bug")
 STATUSES = ("open", "closed")
 
-_SCHEMA_DIR = Path(__file__).resolve().parent.parent.parent / "SPEC"
+_SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"
 _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n?(.*)\Z", re.DOTALL)
 
 

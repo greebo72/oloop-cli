@@ -18,5 +18,8 @@ lagebericht = "lagebericht.cli:main"
 [tool.setuptools]
 packages = ["lagebericht"]
 
+[tool.setuptools.package-data]
+lagebericht = ["schemas/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

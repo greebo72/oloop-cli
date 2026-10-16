@@ -33,7 +33,7 @@ Reihenfolge ist Abhängigkeitsreihenfolge, nicht zwingend zeitlich.
   Python-Paket (`lagebericht/store.py` o. ä.): Frontmatter lesen/schreiben (`python-frontmatter`
   oder eigene minimale Implementierung), atomares Schreiben (Temp-Datei + `os.replace`),
   UUID-Vergabe, Projekt-/Task-Auflösung (Name → Ordner, ID → Datei), Backup-Kopie vor Schreiben
-  (SPEC „Backup/Recovery"). Validiert gegen `SPEC/project.schema.json` / `task.schema.json`.
+  (SPEC „Backup/Recovery"). Validiert gegen `Implementation/lagebericht/schemas/*.schema.json`.
   Abhängig von: AP1, SPEC freigegeben.
 
 - [x] **AP4'' — CLI-Befehle**
