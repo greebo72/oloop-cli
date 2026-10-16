@@ -1,7 +1,8 @@
-# ÜBERHOLT — siehe SPEC.md Revision 2026-10-16 "Architektur-Konsolidierung (4. Pivot)".
-# Service/H2/JDBC-Architektur wurde durch dateibasierte Persistenz ersetzt (kein HTTP-Service
-# mehr). Diese Datei bleibt als historischer Beleg liegen, ist NICHT mehr der maßgebliche
-# Contract. Maßgeblich jetzt: Implementation/lagebericht/schemas/{project,task}.schema.json.
+# OBSOLETE — see SPEC.md revision 2026-10-16 "Architecture consolidation (4th pivot)".
+# The service/H2/JDBC architecture was replaced by file-based persistence (no HTTP service
+# any more). This file stays as historical evidence and is NO LONGER the authoritative
+# contract. Authoritative now: Implementation/oloop/schemas/{project,task}.schema.json.
+# The remainder of this file is untranslated (German) on purpose.
 openapi: 3.0.3
 info:
   title: "ÜBERHOLT — Lagebericht Service API (verworfene Service-Architektur, siehe SPEC.md)"

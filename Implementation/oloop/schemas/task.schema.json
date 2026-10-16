@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://oloop.local/schema/task.schema.json",
   "title": "Task",
-  "description": "Frontmatter-Schema für tasks/<task-id>.md. Markdown-Body des Files = description. Maßgeblich bei Widerspruch zu SPEC.md.",
+  "description": "Frontmatter schema for tasks/<task-id>.md. The Markdown body of the file is the description. Authoritative on conflict with SPEC.md.",
   "type": "object",
   "additionalProperties": false,
   "required": ["id", "projectId", "type", "title", "status", "createdAt", "createdBy", "updatedAt", "updatedBy", "labels"],
@@ -10,12 +10,12 @@
     "id": {
       "type": "string",
       "format": "uuid",
-      "description": "UUID4. Identisch mit dem Dateinamen (ohne .md). Bleibt über die Lebenszeit des Tasks stabil, auch nach Titel-Edits."
+      "description": "UUID4. Identical to the file name (without .md). Stays stable over the task's lifetime, even after title edits."
     },
     "projectId": {
       "type": "string",
       "format": "uuid",
-      "description": "Muss ein existierendes Project.id referenzieren."
+      "description": "Must reference an existing Project.id."
     },
     "type": {
       "type": "string",
@@ -25,46 +25,46 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 300,
-      "description": "Editierbar (updatedAt wird dabei aktualisiert). Dateiname ändert sich dabei NICHT."
+      "description": "Editable (updatedAt is updated). The file name does NOT change."
     },
     "imagePath": {
       "type": ["string", "null"],
-      "description": "Relativ zum Projekt-Ordner, z. B. 'images/<task-id>.png'. Null, solange kein Bild gesetzt."
+      "description": "Relative to the project folder, e.g. 'images/<task-id>.png'. Null until an image is set."
     },
     "status": {
       "type": "string",
       "enum": ["open", "closed"],
-      "description": "Label pro type in der Darstellungsschicht (z. B. todo->Erledigt, question->Geklärt). Datenmodell kennt nur open/closed. Kein Delete — dies ist der einzige Abschluss-Mechanismus."
+      "description": "Label per type in the presentation layer (e.g. todo->Done, question->Answered). The data model only knows open/closed. No delete: this is the only completion mechanism."
     },
     "createdAt": {
       "type": "string",
       "format": "date-time",
-      "description": "UTC, ISO 8601 mit Z."
+      "description": "UTC, ISO 8601 with Z."
     },
     "createdBy": {
       "type": "string",
       "minLength": 1,
-      "description": "Akteur, der den Task angelegt hat (Freitext, z. B. Benutzername oder 'claude'). Unveränderlich."
+      "description": "Actor who created the task (free text, e.g. user name or 'claude'). Immutable."
     },
     "updatedBy": {
       "type": "string",
       "minLength": 1,
-      "description": "Akteur der letzten inhaltlichen Änderung; wird zusammen mit updatedAt gesetzt."
+      "description": "Actor of the last content change; set together with updatedAt."
     },
     "labels": {
       "type": "array",
       "uniqueItems": true,
-      "description": "Freie Labels. Reihenfolge wie vergeben, keine Duplikate, leer erlaubt.",
+      "description": "Free labels. Order as assigned, no duplicates, empty allowed.",
       "items": { "type": "string", "minLength": 1, "maxLength": 100 }
     },
     "updatedAt": {
       "type": "string",
       "format": "date-time",
-      "description": "UTC, ISO 8601 mit Z. Aktualisiert bei jeder inhaltlichen Änderung (Edit, close/reopen, Bild, Kommentar) — zentrales Feld für den 'seit wann still'-Zweck des Tools."
+      "description": "UTC, ISO 8601 with Z. Updated on every content change (edit, close/reopen, image, comment). Central field for the tool's 'silent since' purpose."
     },
     "comments": {
       "type": "array",
-      "description": "Append-only, kein Delete, keine Edits. Chronologisch nach createdAt.",
+      "description": "Append-only, no delete, no edits. Chronological by createdAt.",
       "items": {
         "type": "object",
         "additionalProperties": false,

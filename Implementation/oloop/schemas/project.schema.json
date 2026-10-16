@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://oloop.local/schema/project.schema.json",
   "title": "Project",
-  "description": "Frontmatter-Schema für project.md. Maßgeblich bei Widerspruch zu SPEC.md.",
+  "description": "Frontmatter schema for project.md. Authoritative on conflict with SPEC.md.",
   "type": "object",
   "additionalProperties": false,
   "required": ["id", "name", "createdAt"],
@@ -10,28 +10,28 @@
     "id": {
       "type": "string",
       "format": "uuid",
-      "description": "UUID4. Stabile Kennung des Projekts. Der Ordnername ist nicht die id, sondern der Slug des Namens."
+      "description": "UUID4. Stable identifier of the project. The folder name is not the id but the slug of the name."
     },
     "name": {
       "type": "string",
       "minLength": 1,
       "maxLength": 200,
-      "description": "Eindeutig über alle Projekte (Ordnername ist ein Slug davon)."
+      "description": "Unique across all projects (the folder name is a slug of it)."
     },
     "createdAt": {
       "type": "string",
       "format": "date-time",
-      "description": "UTC, ISO 8601 mit Z."
+      "description": "UTC, ISO 8601 with Z."
     },
     "referencePath": {
       "type": "string",
       "minLength": 1,
-      "description": "Optional. Absoluter Pfad des zugehörigen Arbeitsverzeichnisses (z. B. Repo), von dem aus Tasks angelegt wurden."
+      "description": "Optional. Absolute path of the associated working directory (e.g. a repo) from which tasks were created."
     },
     "referenceHost": {
       "type": "string",
       "minLength": 1,
-      "description": "Optional. Rechnername, auf dem referencePath gilt."
+      "description": "Optional. Machine name on which referencePath applies."
     }
   }
 }

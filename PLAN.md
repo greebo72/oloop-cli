@@ -1,64 +1,45 @@
-# PLAN — oloop (früher „Lagebericht")
+# PLAN — oloop (formerly "Lagebericht")
 
-**Revision:** 2026-10-16 — initial, nach SPEC-Entwurf
-**Revision:** 2026-10-16 — Architektur-Schwenk auf Service (Java/Spring Boot) statt Python-CLI mit
-Direktzugriff. ~~AP3/AP4 (jaydebeapi-CLI)~~ ersetzt durch AP3'/AP4'.
-**Revision:** 2026-10-16 — Scope-Verengung auf einen Rechner (User-Wunsch): ~~AP5~~ (Konfliktkopie-
-Check) entfällt ersatzlos, AP3b vereinfacht (`StartupType=Automatic`, keine Lock-Datei mehr).
-**Revision:** 2026-10-16 — **Architektur-Konsolidierung (4. Pivot):** Dateibasierte Persistenz statt
-H2, kein HTTP-Service mehr. ~~AP3'/AP3b/AP4'~~ (Spring-Boot-Service, Windows-Service-Lifecycle,
-Service-Endpunkte) entfallen ersatzlos — siehe SPEC.md „Verworfene Vorstufen". Ersetzt durch
-AP2''/AP4'' unten.
+**Revision:** 2026-10-16 — initial, after the SPEC draft
+**Revision:** 2026-10-16 — architecture switch to a service (Java/Spring Boot) instead of a Python CLI with direct access. ~~AP3/AP4 (jaydebeapi CLI)~~ replaced by AP3'/AP4'.
+**Revision:** 2026-10-16 — scope narrowed to one machine (user request): ~~AP5~~ (conflict-copy check) dropped without replacement, AP3b simplified (`StartupType=Automatic`, no lock file any more).
+**Revision:** 2026-10-16 — **architecture consolidation (4th pivot):** file-based persistence instead of H2, no HTTP service any more. ~~AP3'/AP3b/AP4'~~ (Spring Boot service, Windows service lifecycle, service endpoints) dropped without replacement. See SPEC.md "Discarded predecessors". Replaced by AP2''/AP4'' below.
 
-Reihenfolge ist Abhängigkeitsreihenfolge, nicht zwingend zeitlich.
+The order is dependency order, not necessarily chronological.
 
-## Arbeitspakete
+## Work packages
 
-- [ ] **AP1 — Projekt-Setup**
-  Verzeichnisstruktur (`SPEC/`, `Implementation/`), `git init`, `.gitignore` (venv, `__pycache__`,
-  `*.mv.db`, `*.jar` — letztere zwei sind Altlasten aus der H2-Ära, schaden nicht, bleiben falls
-  die Historie je gebraucht wird). Abhängig von: nichts. *(Struktur/git erledigt)*
+- [ ] **AP1 — Project setup**
+  Directory structure (`SPEC/`, `Implementation/`), `git init`, `.gitignore` (venv, `__pycache__`, `*.mv.db`, `*.jar`; the last two are leftovers from the H2 era, harmless, kept in case the history is ever needed). Depends on: nothing. *(Structure/git done)*
 
-- ~~[ ] **AP2 — Schema + DDL**~~ (H2-DDL) — entfällt, siehe AP2'' unten.
-- ~~[ ] **AP3 — Python-CLI-Grundgerüst** (jaydebeapi)~~ — entfällt.
-- ~~[ ] **AP4 — CLI-Befehle** (Direktzugriff via jaydebeapi)~~ — entfällt, siehe AP4'' unten.
-- ~~[ ] **AP3' — Spring-Boot-Service-Grundgerüst**~~ — entfällt, kein Service mehr.
-- ~~[ ] **AP3b — Service-Lifecycle (Windows Service)**~~ — entfällt, kein residenter Prozess mehr.
-- ~~[ ] **AP4' — Service-Endpunkte**~~ — entfällt, kein HTTP mehr. Endpunkt-Liste lebt als
-  CLI-Subcommands in AP4'' weiter (die fachliche Operationen bleiben dieselben).
-- ~~[ ] **AP4c — CLI/MCP als HTTP-Client**~~ — entfällt, CLI/MCP rufen jetzt direkt ein
-  Python-Modul statt HTTP.
+- ~~[ ] **AP2 — Schema + DDL**~~ (H2 DDL) — dropped, see AP2'' below.
+- ~~[ ] **AP3 — Python CLI skeleton** (jaydebeapi)~~ — dropped.
+- ~~[ ] **AP4 — CLI commands** (direct access via jaydebeapi)~~ — dropped, see AP4'' below.
+- ~~[ ] **AP3' — Spring Boot service skeleton**~~ — dropped, no service any more.
+- ~~[ ] **AP3b — Service lifecycle (Windows service)**~~ — dropped, no resident process any more.
+- ~~[ ] **AP4' — Service endpoints**~~ — dropped, no HTTP any more. The endpoint list lives on as CLI subcommands in AP4'' (the functional operations stay the same).
+- ~~[ ] **AP4c — CLI/MCP as HTTP client**~~ — dropped, CLI/MCP now call a Python module directly instead of HTTP.
 
-- [x] **AP2'' — Dateiformat-Modul**
-  Python-Paket (`oloop/store.py` o. ä.): Frontmatter lesen/schreiben (`python-frontmatter`
-  oder eigene minimale Implementierung), atomares Schreiben (Temp-Datei + `os.replace`),
-  UUID-Vergabe, Projekt-/Task-Auflösung (Name → Ordner, ID → Datei), Backup-Kopie vor Schreiben
-  (SPEC „Backup/Recovery"). Validiert gegen `Implementation/oloop/schemas/*.schema.json`.
-  Abhängig von: AP1, SPEC freigegeben.
+- [x] **AP2'' — File format module**
+  Python package (`oloop/store.py` or similar): read/write frontmatter (`python-frontmatter` or a minimal implementation of our own), atomic writing (temp file + `os.replace`), UUID assignment, project/task resolution (name → folder, ID → file), backup copy before writing (SPEC "Backup/recovery"). Validates against `Implementation/oloop/schemas/*.schema.json`. Depends on: AP1, SPEC approved.
 
-- [x] **AP4'' — CLI-Befehle**
-  `project add/list`, `task add/list/edit/close/reopen`, `comment add` — fachlich identisch zu den
-  vormaligen HTTP-Endpunkten (SPEC „Dateiformat" / verworfene `api-contract.yaml` als Referenz für
-  die Filterparameter: `projectName`, `type`, `status`, `staleDays`). `--json` auf lesenden
-  Befehlen. Direkt gegen AP2'', keine Netzwerkschicht. Abhängig von: AP2''.
+- [x] **AP4'' — CLI commands**
+  `project add/list/edit/find`, `task add/list/show/edit/close/reopen/image`, `comment add`. Functionally identical to the former HTTP endpoints (SPEC "File format" / the discarded `api-contract.yaml` as reference for the filter parameters: project, type, status, stale days). `--json` on read commands. Directly against AP2'', no network layer. Depends on: AP2''.
 
-- [ ] **AP4d — MCP-Wrapper** *(optional, kann parallel oder später)*
-  Dünne Schicht, importiert dasselbe Python-Modul wie das CLI (AP2''). Abhängig von: AP2''.
+- [ ] **AP4d — MCP wrapper** *(optional, can run in parallel or later)*
+  Thin layer importing the same Python module as the CLI (AP2''). Depends on: AP2''.
 
-- [ ] **AP6 — Phase 2: Desktop-App** *(separates Spec-Kapitel, eigene Freigabe)*
-  Toolkit-Entscheidung (SPEC-ADR-Beobachtung: Electron vermutlich zu schwer für „klein und
-  schnell", Tauri/Wails/native GUI als Kandidaten), dann Umsetzung im Look des Artifact-Prototyps,
-  liest/schreibt dieselben Dateien (direkt oder über AP2'', je nach Toolkit-Sprache). Abhängig
-  von: AP4'', etwas gelebte Nutzung über CLI.
+- [ ] **AP6 — Phase 2: desktop app** *(separate spec chapter, own approval)*
+  Toolkit decision (SPEC ADR observation: Electron probably too heavy for "small and fast", Tauri/Wails/native GUI as candidates), then implementation in the look of the artifact prototype, reading and writing the same files (directly or via AP2'', depending on the toolkit language). Depends on: AP4'', some real use via the CLI.
 
-## Risikotabelle
+## Risk table
 
-| Risiko | Auswirkung | Status |
+| Risk | Impact | Status |
 |---|---|---|
-| ~~OneDrive synct `.mv.db` mitten im Schreibvorgang~~ | ~~DB-Korruption~~ | **Entfällt** — Scope-Verengung auf einen Rechner |
-| ~~Konfliktkopie-Namensmuster unbekannt~~ | ~~AP5 falsch negativ~~ | **Entfällt** — AP5 gestrichen |
-| ~~`jaydebeapi`/JPype-Installation plattformabhängig~~ | ~~CLI startet nicht ohne Setup~~ | **Entfällt** — kein Java/H2 mehr im Projekt |
-| ~~Service-Installation braucht elevated Schritt (UAC)~~ | ~~Kein automatisierbarer Schritt~~ | **Entfällt** — kein Service/Windows-Service mehr |
-| ~~Einzelne `.mv.db`-Datei wächst mit Bild-BLOBs~~ | ~~Datei wird groß/langsam~~ | **Entfällt** — nie BLOBs, jetzt ohnehin Dateien neben Dateien |
-| Kein Lock bei gleichzeitigem Schreibzugriff (z. B. CLI + künftige Desktop-App im selben Moment) | Last-writer-wins auf Task-Ebene, Datenverlust des verlierenden Schreibvorgangs | Gemindert durch atomares Schreiben (keine kaputten Dateien), Race selbst bewusst in Kauf genommen (SPEC-ADR) — Einzelnutzer-Tool, selten wirklich gleichzeitig |
-| Beliebige Dateibeschädigung (Bug, Absturz mitten im Schreiben) | Verlust einzelner Task-Datei, nicht des gesamten Bestands | Gemindert durch Backup-Kopie vor Schreiben (SPEC „Backup/Recovery") und dadurch, dass Schaden strukturell auf eine Datei begrenzt bleibt |
+| ~~OneDrive syncs `.mv.db` mid-write~~ | ~~DB corruption~~ | **Void** — scope narrowed to one machine |
+| ~~Conflict-copy naming pattern unknown~~ | ~~AP5 false negative~~ | **Void** — AP5 dropped |
+| ~~`jaydebeapi`/JPype installation is platform dependent~~ | ~~CLI does not start without setup~~ | **Void** — no Java/H2 in the project any more |
+| ~~Service installation needs an elevated step (UAC)~~ | ~~No automatable step~~ | **Void** — no service/Windows service any more |
+| ~~Single `.mv.db` file grows with image BLOBs~~ | ~~File gets large/slow~~ | **Void** — never BLOBs, files next to files now |
+| No lock on simultaneous writes (for example CLI + future desktop app at the same moment) | Last writer wins at task level, the losing write is lost | Reduced by atomic writing (no broken files), the race itself accepted on purpose (SPEC ADR): single-user tool, rarely truly simultaneous |
+| Arbitrary file damage (bug, crash mid-write) | Loss of a single task file, not of the whole data set | Reduced by a backup copy before writing (SPEC "Backup/recovery") and by damage being structurally limited to one file |

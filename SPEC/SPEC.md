@@ -1,141 +1,80 @@
-# SPEC — oloop, früher „Lagebericht" (lokaler Cross-Projekt-Tracker)
+# SPEC — oloop, formerly "Lagebericht" (local cross-project tracker)
 
-**Status:** Entwurf (2026-10-16) — noch nicht freigegeben
+**Status:** Draft (2026-10-16), not yet approved
 
-**Revision:** 2026-10-16 — initial draft, nach Technik-Grounding (JVM/H2/OneDrive gemessen) und einer User-Rückfrage (Multi-Device)
-**Revision:** 2026-10-16 — Architektur-Schwenk (User-Wunsch): zentraler lokaler Service statt Direkt-DB-Zugriff aus jedem Client. Service-Sprache entschieden: Java/Spring Boot.
-**Revision:** 2026-10-16 — vollständiger API-Contract ergänzt (`SPEC/api-contract.yaml`, OpenAPI 3.0.3).
-**Revision:** 2026-10-16 — Vollständigkeits-Audit: DB-Pfad/Credentials/Zeitformat festgelegt, Backup/Recovery (Copy-on-Start) ergänzt, Zweck/Nicht-Ziele an Service-Architektur angepasst.
-**Revision:** 2026-10-16 — Delete/Edit entschieden (User): kein Delete irgendwo (append-only, "mark as finished"), `PATCH /tasks/{id}`-Äquivalent für title/description ergänzt.
-**Revision:** 2026-10-16 — Scope-Verengung (User-Wunsch): Server läuft nur auf einem Rechner. OneDrive-Sync-ADR, Lock-Datei, Konfliktkopie-Check entfallen ersatzlos. `StartupType` auf `Automatic`.
-**Revision:** 2026-10-16 — **Architektur-Konsolidierung (4. Pivot).** Storage von H2 auf Markdown-Dateien mit YAML-Frontmatter umgestellt. Java/Spring-Boot-Service entfällt komplett: sein einziger
-zwingender Grund (H2 spricht JDBC nativ, kein Treiber-Bridge-Risiko) ist mit dem Storage-Wechsel
-hinfällig — Textdateien brauchen in keiner Sprache einen Treiber. Phase 2 bestätigt als
-**Desktop-App** statt Browser-UI, braucht deshalb ebenfalls keinen HTTP-Service. Projekt ist damit
-vollständig Python, keine JVM-Abhängigkeit mehr. Siehe „Verworfene Vorstufen" unten für die
-Zusammenfassung aller vier Pivots; `SPEC/api-contract.yaml` bleibt als historischer Beleg liegen
-(Kopfzeile markiert es als überholt), ersetzt durch `Implementation/oloop/schemas/*.schema.json`.
+**Revision:** 2026-10-16 — initial draft, after technical grounding (JVM/H2/OneDrive measured) and a user question (multi-device).
+**Revision:** 2026-10-16 — architecture switch (user request): central local service instead of direct DB access from every client. Service language decided: Java/Spring Boot.
+**Revision:** 2026-10-16 — full API contract added (`SPEC/api-contract.yaml`, OpenAPI 3.0.3).
+**Revision:** 2026-10-16 — completeness audit: DB path, credentials and time format fixed, backup/recovery (copy on start) added, purpose and non-goals aligned with the service architecture.
+**Revision:** 2026-10-16 — delete/edit decided (user): no delete anywhere (append-only, "mark as finished"), `PATCH /tasks/{id}` equivalent added for title/description.
+**Revision:** 2026-10-16 — scope narrowed (user request): the server runs on one machine only. OneDrive sync ADR, lock file and conflict-copy check dropped without replacement. `StartupType` set to `Automatic`.
+**Revision:** 2026-10-16 — **Architecture consolidation (4th pivot).** Storage moved from H2 to Markdown files with YAML frontmatter. The Java/Spring Boot service is dropped entirely: its only compelling reason (H2 speaks JDBC natively, no driver bridge risk) disappears with the storage change, since text files need no driver in any language. Phase 2 confirmed as a **desktop app** instead of a browser UI, so it needs no HTTP service either. The project is now pure Python with no JVM dependency. See "Discarded predecessors" below for a summary of all four pivots. `SPEC/api-contract.yaml` stays as historical evidence (its header marks it obsolete), replaced by `Implementation/oloop/schemas/*.schema.json`.
+**Revision:** 2026-10-16 — task fields `createdBy`, `updatedBy`, `labels` added (user request).
+**Revision:** 2026-10-16 — project fields `referencePath`, `referenceHost` added (optional), plus `project find`. Project renamed from "Lagebericht" to "oloop"; all documents translated to English.
 
-**Revision:** 2026-10-16 — Task-Felder `createdBy`, `updatedBy`, `labels` ergänzt (User-Wunsch).
+## Discarded predecessors
 
-## Verworfene Vorstufen
+Short version for readers starting cold: four real architecture pivots in this spec's history, each a simplification of the previous state.
 
-Kurzfassung für kalt einsteigende Leser — vier echte Architektur-Pivots in dieser Spec-Historie,
-jeder eine Vereinfachung gegenüber dem vorigen Stand:
+1. **Python CLI with direct H2 access** (`jaydebeapi`/JPype bridge). Discarded: no native Python H2 driver exists, and every further client (MCP, UI) would have needed the same bridge.
+2. **Java/Spring Boot service as the only JDBC instance**, with CLI/MCP/UI as HTTP clients. Solved problem 1 by leaving a single process that had to speak JDBC. Discarded with pivot 4: the driver problem that justified the service does not exist for text files.
+3. **OneDrive sync protection + cross-device locking** (sync ADR, conflict-copy check, lock file, `StartupType=Manual`). Discarded: the server runs on one machine only (user decision), so the whole problem class does not exist.
+4. **The HTTP service as such** (not just its Java implementation). Discarded: phase 2 becomes a desktop app (no browser backend needed), and text files have no central driver problem that would still justify a service. CLI, MCP wrapper and the later desktop app now read and write directly through a shared, documented file format.
 
-1. **Python-CLI mit H2-Direktzugriff** (`jaydebeapi`/JPype-Bridge). Verworfen: kein nativer
-   Python-H2-Treiber existiert, jeder weitere Client (MCP, UI) hätte dieselbe Bridge gebraucht.
-2. **Java/Spring-Boot-Service als einzige JDBC-Instanz**, CLI/MCP/UI als HTTP-Clients. Löste
-   Problem 1, indem nur noch ein Prozess JDBC sprechen musste. Verworfen mit Pivot 4: das
-   Treiber-Problem, das den Service begründet hat, existiert bei Textdateien gar nicht erst.
-3. **OneDrive-Sync-Schutz + geräteübergreifendes Locking** (Sync-ADR, Konfliktkopie-Check,
-   Lock-Datei, `StartupType=Manual`). Verworfen: Server läuft nur auf einem Rechner
-   (User-Entscheidung), die ganze Problemklasse existiert nicht.
-4. **HTTP-Service als solcher** (nicht nur die Java-Implementierung). Verworfen: Phase 2 wird eine
-   Desktop-App (kein Browser-Backend-Zwang), und Textdateien haben kein zentrales
-   Treiber-Problem, das einen Service noch rechtfertigen würde. CLI, MCP-Wrapper und die spätere
-   Desktop-App lesen/schreiben jetzt direkt über ein gemeinsames, dokumentiertes Dateiformat.
+The full reasoning behind the discarded decisions (arguments, alternatives weighed) lives in the revision lines above and in the session history this spec came from. Only the consequence is kept here, so the document stays readable.
 
-Volltext der verworfenen Entscheidungen (Begründungen, abgewogene Alternativen) steht in den
-jeweiligen Revisionszeilen oben bzw. im Session-Verlauf, mit dem diese Spec entstanden ist — hier
-nur die Konsequenz, nicht die komplette Herleitung, damit das Dokument lesbar bleibt.
+## Purpose
 
-## Zweck
+The user works on many projects in parallel (different directories, some inactive for weeks). Open todos, unanswered questions, decisions made and key features get lost between sessions and projects, and there is no central overview of what is open where. oloop is the local tool for that: Markdown files with YAML frontmatter as storage (managed by the tool, never edited by hand), a Python module used directly by the CLI and the MCP wrapper (no network layer, no driver), and later a desktop app in the look of the Claude artifact shown earlier, reading and writing the same files.
 
-User arbeitet parallel an vielen Projekten (verschiedene Verzeichnisse, teils Wochen inaktiv).
-Offene Todos, ungeklärte Fragen, getroffene Entscheidungen und Key Features gehen zwischen
-Sessions/Projekten verloren — kein zentraler Überblick, was wo offen ist. `Lagebericht` ist das
-lokale Tool dafür: Markdown-Dateien mit YAML-Frontmatter als Datenhaltung (vom Tool verwaltet, nie
-von Hand editiert), ein Python-Modul, das CLI und MCP-Wrapper direkt nutzen (kein Netzwerk-Layer,
-kein Treiber), später eine Desktop-App im Look des bereits gezeigten Claude-Artifacts, die
-dieselben Dateien liest/schreibt.
+Predecessor: Claude artifact prototype (`claude.ai/code/artifact/ad6da2b6-...`, 2026-10-16). It showed the data model and look as a trial and the user confirmed it ("looks very good already"). This project replaces the artifact's cloud DB with local files.
 
-Vorläufer: Claude-Artifact-Prototyp (`claude.ai/code/artifact/ad6da2b6-...`, 2026-10-16) — dort
-wurde Datenmodell und Optik probeweise gezeigt und vom User bestätigt ("sieht schon sehr gut aus").
-Dieses Projekt ersetzt die Cloud-DB des Artifacts durch lokale Dateien.
+## Non-goals (this spec version)
 
-## Nicht-Ziele (diese Spec-Version)
+- **Multi-user/auth** — single-user tool, no login, no role model.
+- **Multiple devices** — the tool runs on one machine only (user decision). No sync protection, no cross-device locking, no conflict-copy detection.
+- **UI** — phase 2, own chapter and revision. This spec covers file format, Python module and CLI. Phase 2 is confirmed as a desktop app (not browser); the toolkit choice stays open.
+- **Network/service layer** — deliberately none. CLI, MCP wrapper and desktop app access the files directly (or a shared Python module if the desktop app is Python-based, otherwise re-implemented against the documented file format).
+- **Direct editing of the files by the user** — explicit requirement. The Markdown files are an implementation detail of the tool, not a user interface.
 
-- **Mehrbenutzer/Auth** — Einzelnutzer-Tool, kein Login, kein Rollenkonzept.
-- **Mehrere Geräte** — Server/Tool läuft nur auf einem Rechner (User-Entscheidung). Kein
-  Sync-Schutz, kein geräteübergreifendes Locking, keine Konfliktkopie-Erkennung.
-- **UI** — Phase 2, eigenes Kapitel/eigene Revision. Diese Spec deckt Dateiformat + Python-Modul +
-  CLI ab. Phase 2 ist als Desktop-App bestätigt (nicht Browser), Toolkit-Wahl bleibt offen.
-- **Netzwerk-/Service-Layer** — bewusst keiner. CLI, MCP-Wrapper und Desktop-App greifen direkt
-  auf die Dateien zu (bzw. auf ein gemeinsames Python-Modul, falls die Desktop-App Python-basiert
-  wird — sonst gegen das dokumentierte Dateiformat neu implementiert).
-- **Direktes Editieren der Dateien durch den User** — explizite Anforderung. Die Markdown-Dateien
-  sind Implementierungsdetail des Tools, keine Nutzerschnittstelle.
+## Measurements (2026-10-16, this machine)
 
-## Messwerte (2026-10-16, dieses Gerät)
+- Python 3.13.3 available. Still relevant, the project is now pure Python.
+- ~~JVM available: OpenJDK Corretto 11.0.32.1.~~ ~~H2 jar available locally (`~/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar`).~~ ~~Account `SAMPLE\user` is a member of the local administrators group, so Windows service installation is possible.~~ **No longer relevant** — pivot 4 (no Java service, no JVM dependency in the project).
+- ~~H2 embedded (MVStore) creates exactly one file and no extra or lock file when closed (verified by a test run in a OneDrive folder).~~ **No longer relevant** — no H2 any more, see pivots 1 and 4.
 
-- Python 3.13.3 vorhanden — bleibt relevant, Projekt ist jetzt vollständig Python.
-- ~~JVM vorhanden: OpenJDK Corretto 11.0.32.1.~~ ~~H2-Jar lokal vorhanden
-  (`~/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar`).~~ ~~Account `SAMPLE\user` ist
-  Mitglied der lokalen Administratoren-Gruppe — Windows-Service-Installation möglich.~~ **Nicht mehr
-  relevant** — Pivot 4 (kein Java-Service mehr, keine JVM-Abhängigkeit im Projekt).
-- ~~H2 embedded (MVStore) erzeugt genau eine Datei, keine Zusatz-/Lock-Datei im geschlossenen
-  Zustand (verifiziert per Testlauf in einem OneDrive-Ordner).~~ **Nicht mehr relevant** — kein H2
-  mehr, siehe Pivot 1/4.
+## Backup/recovery
 
-## Backup/Recovery
+Many small files instead of one binary file are more robust by nature: one damaged task does not kill the whole data set, unlike a corrupt `.mv.db`. **In scope for V1:** before every write, the Python module copies the affected file to `.backup/<filename>.bak` (one generation, no rotation scheme). This is cheap protection against the one remaining failure case (a bug in the write path, a crash mid-write) that atomic rename writes leave open in theory. More (versioning, several generations) is not part of this approval.
 
-Viele kleine Dateien statt einer einzelnen Binärdatei sind von sich aus robuster: ein beschädigter
-Task killt nicht den ganzen Datenbestand, anders als ein korruptes `.mv.db`. **In Scope für V1:**
-das Python-Modul legt vor jedem Schreibzugriff eine Kopie der betroffenen Datei unter
-`.backup/<dateiname>.bak` an (eine Generation, kein Rotationsschema) — billige Absicherung gegen
-den einen Fehlerfall (Bug im Schreibpfad, Absturz mitten im Schreiben), der trotz atomarem
-Rename-Schreiben theoretisch bleibt. Mehr (Versionierung, mehrere Generationen) ist nicht Scope
-dieser Freigabe.
+## ADR — file-based persistence, no service
 
-## ADR — Dateibasierte Persistenz, kein Service
+**Context:** The user asked what switching from H2 to text files would mean (the UI should stay the same, files never edited directly), then whether a separate HTTP service still makes sense given that.
 
-**Kontext:** User fragte, was ein Wechsel von H2 auf Textdateien bedeuten würde (UI soll gleich
-bleiben, Dateien nie direkt editiert), dann ob angesichts dessen ein separater HTTP-Service noch
-Sinn macht.
+**Decision:** No service. Markdown + YAML frontmatter files, managed by a shared Python module that the CLI and MCP wrapper import directly.
 
-**Entscheidung:** Kein Service. Markdown+YAML-Frontmatter-Dateien, verwaltet durch ein gemeinsames
-Python-Modul, das CLI und MCP-Wrapper direkt importieren.
+**Why the service goes away, not just its Java implementation:** The dominant reason for the service was to concentrate the JDBC driver problem in one instance (see predecessor 2 above). Text files have no such problem in any language. The second reason (a browser cannot speak JDBC) would only have mattered if phase 2 became a browser UI. The user confirmed phase 2 as a desktop app instead ("small and fast"), which can read local files directly, so no backend is needed. The third reason (bundling access code) is much weaker for file I/O (parsing and writing frontmatter) than for connection pooling and JDBC. There is little worth hiding behind an interface.
 
-**Warum der Service wegfällt, nicht nur seine Java-Implementierung:** Der dominante Grund für den
-Service war, das JDBC-Treiber-Problem auf eine Instanz zu konzentrieren (siehe Vorstufe 2 oben).
-Textdateien haben dieses Problem in keiner Sprache. Der zweite Grund (Browser kann kein JDBC) wäre
-ohnehin nur relevant gewesen, wenn Phase 2 eine Browser-UI würde — User hat Phase 2 stattdessen als
-Desktop-App bestätigt („klein und schnell"), die lokale Dateien direkt lesen kann, kein
-Backend-Zwang. Der dritte Grund (Zugriffscode bündeln) ist bei Datei-I/O (Frontmatter
-parsen/schreiben) viel schwächer als bei Connection-Pooling/JDBC — wenig, das sich hinter einer
-Schnittstelle zu verstecken lohnt.
+**What this gives up, accepted on purpose:** Without a central service there is no built-in serialization of writes. Mitigation: atomic writing (temp file in the same directory + `os.replace`) prevents broken or half-written files. A real race between two *simultaneous* writes to the same task (for example the CLI and a future desktop app at the same moment) remains a residual risk: last writer wins, no lock. Accepted for a single-user tool that is rarely used truly concurrently, and documented here rather than left open silently.
 
-**Was dadurch verloren geht, bewusst in Kauf genommen:** Ohne zentralen Service gibt es keine
-eingebaute Serialisierung von Schreibzugriffen mehr. Mitigation: atomares Schreiben (Temp-Datei im
-selben Verzeichnis + `os.replace`) verhindert kaputte/halb geschriebene Dateien. Ein echtes Race
-zwischen zwei *gleichzeitigen* Schreibzugriffen auf denselben Task (z. B. CLI und eine künftige
-Desktop-App im selben Moment) bleibt ein Restrisiko — last-writer-wins, kein Lock. Für ein
-Einzelnutzer-Tool mit selten wirklich gleichzeitiger Nutzung akzeptiert, hier dokumentiert statt
-stillschweigend offen gelassen.
+**Observation for phase 2, not a decision now:** Electron contradicts the stated "small and fast" (it bundles Chromium, high memory use). Lighter alternatives that could reuse the HTML/CSS/JS look of the artifact prototype: Tauri (Rust) or Wails (Go) with the system WebView instead of bundled Chromium; alternatively a native GUI (for example .NET/WPF, since the target is Windows only). Own spec chapter, own approval, only noted here.
 
-**Beobachtung für Phase 2, keine Entscheidung jetzt:** Electron widerspricht dem genannten „klein
-und schnell" (bündelt Chromium, hoher Speicherbedarf). Leichtere Alternativen, die den bereits
-gestalteten HTML/CSS/JS-Look des Artifact-Prototyps weiterverwenden könnten: Tauri (Rust) oder
-Wails (Go) mit System-WebView statt gebündeltem Chromium; alternativ eine native GUI (z. B.
-.NET/WPF, da reines Windows-Target). Eigenes Spec-Kapitel, eigene Freigabe, hier nur vermerkt.
-
-## Dateiformat
+## File format
 
 ```
-<daten-root>/                      -- Pfad konfigurierbar (CLI-Config/ENV, kein Hardcoding)
+<data-root>/                       -- path configurable (CLI config/ENV, no hardcoding)
   <project-slug>/
-    project.md                     -- Frontmatter: id (UUID), name, createdAt,
+    project.md                     -- frontmatter: id (UUID), name, createdAt,
                                        optional referencePath, referenceHost
     tasks/
-      <task-id>.md                 -- Dateiname = UUID, stabil über die Lebenszeit des Tasks
-                                       (Titel-Änderung benennt die Datei NICHT um — Referenzen/
-                                       Kommentare bleiben stabil)
+      <task-id>.md                 -- file name = UUID, stable over the task's lifetime
+                                       (changing the title does NOT rename the file, so
+                                       references and comments stay stable)
     images/
-      <task-id>.<ext>              -- optionales Bild je Task, neben der Task-Datei
+      <task-id>.<ext>              -- optional image per task, next to the task file
 ```
 
-Frontmatter je Task (YAML-Header, `python-frontmatter`-kompatibel):
+Frontmatter per task (YAML header, `python-frontmatter` compatible):
 
 ```yaml
 id: <uuid>
@@ -154,53 +93,36 @@ comments:
     createdAt: 2026-10-16T12:05:00Z
 ```
 
-Markdown-Body = `description`. **Maßgeblich für die genaue Struktur:** `Implementation/oloop/schemas/project.schema.json`,
-`Implementation/oloop/schemas/task.schema.json` (JSON Schema, übernimmt die Rolle, die vorher `api-contract.yaml` hatte —
-bei Widerspruch gelten die Schema-Dateien).
+Markdown body = `description`. **Authoritative for the exact structure:** `Implementation/oloop/schemas/project.schema.json` and `Implementation/oloop/schemas/task.schema.json` (JSON Schema, taking over the role `api-contract.yaml` had before; the schema files win on conflict).
 
-**`image_path` relativ, Datei statt BLOB:** unverändert aus den Vorstufen — jetzt ohnehin die
-natürliche Lösung bei Dateibasierter Persistenz.
+**Relative `image_path`, file instead of BLOB:** unchanged from the predecessors, and now the natural solution for file-based persistence anyway.
 
-**`createdBy`/`updatedBy`/`labels`:** Akteur als Freitext-String (Quelle: Parameter, sonst
-`$OLOOP_ACTOR`, sonst OS-Benutzername). `updatedBy` wird bei jeder Änderung zusammen mit
-`updatedAt` gesetzt, `createdBy` nie. `labels` = Liste eindeutiger Strings, per Edit ersetzbar.
+**`createdBy`/`updatedBy`/`labels`:** the actor is a free-text string (source: parameter, else `$OLOOP_ACTOR`, else OS user name). `updatedBy` is set together with `updatedAt` on every change, `createdBy` never. `labels` is a list of unique strings, replaceable via edit.
 
-**Ein `status`-Feld, kein Enum pro Typ:** Label in der Darstellungsschicht variiert pro Typ (todo →
-„Erledigt", question → „Geklärt", decision → „Entschieden", feature → „Umgesetzt", bug →
-„Behoben"). Datenmodell bleibt `open`/`closed`.
+**`referencePath`/`referenceHost` (project, optional):** working directory (for example a repo) a project belongs to, and the machine name it applies to. `oloop project find` maps a directory to a project (longest matching path wins, host must match). If a path is given without a host, the current machine name is stored.
 
-**`updatedAt` ist Pflichtfeld, kein Beiwerk:** zentraler Zweck des Tools ist, nach 1-2 stillen
-Wochen zu sehen, was zuletzt passiert ist. CLI (und später UI) filtern/sortieren danach.
+**One `status` field, no enum per type:** the label in the presentation layer varies per type (todo → "Done", question → "Answered", decision → "Decided", feature → "Implemented", bug → "Fixed"). The data model stays `open`/`closed`.
 
-**Kein Delete, nirgends.** User-Entscheidung: „Mark as finished statt delete ist der Weg."
-Task/Comment/Project sind append-only — `close`/`reopen` (Status-Flip in der Frontmatter) ist der
-einzige Abschluss-Mechanismus, keine Datei verschwindet je.
+**`updatedAt` is a required field, not an extra:** the tool's central purpose is to see what happened last after one or two quiet weeks. CLI (and later UI) filter and sort by it.
 
-**Edit erlaubt, aber begrenzt.** `title`/`description` eines Tasks sind nachträglich korrigierbar
-(überschreibt die Frontmatter-Felder bzw. den Markdown-Body, `updatedAt` wird aktualisiert,
-Dateiname bleibt stabil). Projektname und Task-Typ sind NICHT editierbar in V1.
+**No delete, anywhere.** User decision: "Mark as finished instead of delete is the way." Task, comment and project are append-only. `close`/`reopen` (a status flip in the frontmatter) is the only completion mechanism, and no file ever disappears.
 
-**ID-Schema:** UUID4 pro Entität (kein Auto-Increment mehr möglich ohne DB). Dateiname = ID.
+**Edit allowed, but limited.** `title`/`description` of a task can be corrected afterwards (overwrites the frontmatter field or the Markdown body, `updatedAt` is updated, the file name stays stable). Project name and task type are NOT editable in V1.
 
-**Zeitstempel:** UTC, ISO 8601 mit `Z`. Lokalisierung auf Anzeigeseite (CLI/UI), nicht im
-Dateiformat. Relevant für `staleDays`-Filterung im CLI.
+**ID scheme:** UUID4 per entity (no auto-increment without a DB). File name = ID.
+
+**Timestamps:** UTC, ISO 8601 with `Z`. Localization happens on the display side (CLI/UI), not in the file format. Relevant for the stale-days filter in the CLI.
 
 ## Phase 2
 
-Desktop-App (User-Entscheidung, „klein und schnell"), Look & Struktur analog zum gezeigten
-Claude-Artifact (Sidebar-Projektfilter, Typ-Tabs/Stat-Kacheln, Karten mit Status-Toggle) — plus
-"seit wann still" als neue Ansicht (folgt aus `updatedAt`). Toolkit TBD, siehe ADR-Beobachtung oben
-(Electron vermutlich zu schwer für „klein und schnell", Tauri/Wails/native GUI als Kandidaten).
-Eigenes Spec-Kapitel, eigene Freigabe, erst nach Freigabe/Nutzung dieser Version.
+Desktop app (user decision, "small and fast"), look and structure like the artifact shown (sidebar project filter, type tabs/stat tiles, cards with status toggle), plus "silent since" as a new view (follows from `updatedAt`). Toolkit TBD, see the ADR observation above (Electron probably too heavy for "small and fast", Tauri/Wails/native GUI as candidates). Own spec chapter, own approval, only after approval and use of this version.
 
-## Offene Punkte
+## Open points
 
-Keine Freigabe-Blocker bekannt. Verbleibend — vor den jeweiligen Arbeitspaketen zu klären:
+No known approval blockers. Remaining, to be clarified before the respective work packages:
 
-- **Konkreter Daten-Root-Pfad** — Spec legt nur fest, dass er konfigurierbar ist (CLI-Config/ENV,
-  kein Hardcoding); tatsächlicher Wert kommt vom User vor dem ersten Lauf.
-- CLI-Framework (Python, `click` vs. `argparse`) — Implementierungsdetail.
-- MCP-Wrapper: importiert dasselbe Python-Modul — kann parallel zum CLI oder später entstehen.
-- Phase-2-Toolkit (s. o.) — eigenes Kapitel, nicht Teil dieser Freigabe.
-- Git-Remote für dieses Projekt (nur lokal vs. Backup-Remote) — nicht erfragt; `git init` reicht
-  für die von CLAUDE.md geforderte Commit-Referenzierung, Remote kann später folgen.
+- **Concrete data root path.** The spec only fixes that it is configurable (CLI config/ENV, no hardcoding); the actual value comes from the user before the first run.
+- CLI framework (Python, `click` vs. `argparse`), an implementation detail.
+- MCP wrapper: imports the same Python module and can be built in parallel to the CLI or later.
+- Phase 2 toolkit (see above), own chapter, not part of this approval.
+- Git remote for this project (local only vs. backup remote). Not asked; `git init` is enough for the commit references required by CLAUDE.md, a remote can follow later.

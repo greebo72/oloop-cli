@@ -1,34 +1,34 @@
 # oloop
 
-oloop sammelt die offenen Punkte aus allen deinen Projekten an einem Ort: Todos, Fragen, Entscheidungen, Features und Bugs. So siehst du, was wo noch offen ist und was seit Wochen still liegt.
+oloop collects the open items from all your projects in one place: todos, questions, decisions, features and bugs. It shows what is still open where, and what has been sitting untouched for weeks.
 
-Die Daten liegen als Markdown-Dateien mit YAML-Frontmatter in einem normalen Ordner. Bedient wird oloop über ein CLI, das du und Claude Code nutzen. Es gibt keinen Server und keine Datenbank. Von Hand bearbeitet werden die Dateien nicht.
+The data lives as Markdown files with YAML frontmatter in a plain folder. You and Claude Code work with it through a CLI. There is no server and no database. The files are not meant to be edited by hand.
 
 ## Installation
 
-Voraussetzung ist Python ab 3.11 und [uv](https://docs.astral.sh/uv/).
+You need Python 3.11 or newer and [uv](https://docs.astral.sh/uv/).
 
 ```
 cd Implementation
 uv build
 uv tool install dist/*.whl
-export OLOOP_ROOT=~/oloop-daten
+export OLOOP_ROOT=~/oloop-data
 ```
 
-## Benutzung
+## Usage
 
 ```
-oloop project add meinprojekt --reference-path ~/dev/meinprojekt
-oloop task add -p meinprojekt -t todo "Backup prüfen" -l infra
+oloop project add myproject --reference-path ~/dev/myproject
+oloop task add -p myproject -t todo "Check backups" -l infra
 oloop task list -s open --stale-days 14
 oloop task close <id>
-oloop project find          # Projekt zum aktuellen Verzeichnis
+oloop project find          # project for the current directory
 ```
 
-Task-Typen sind `todo`, `question`, `decision`, `feature` und `bug`. Kommentare, Labels und Bilder hängen direkt am Task. Mit `--json` liefern `list` und `show` maschinenlesbare Ausgabe. Weitere Befehle zeigt `oloop --help`.
+Task types are `todo`, `question`, `decision`, `feature` and `bug`. Comments, labels and images attach directly to a task. `list` and `show` take `--json` for machine-readable output. `oloop --help` lists the remaining commands.
 
-## Grenzen
+## Limits
 
-Gedacht ist oloop für eine Person auf einem Rechner, ohne Locking und ohne Sync-Schutz. Tasks werden geschlossen, nie gelöscht. Eine Desktop-App ist für später geplant.
+oloop is built for one person on one machine, without locking or sync protection. Tasks are closed, never deleted. A desktop app is planned for later.
 
-Details stehen in [SPEC/SPEC.md](SPEC/SPEC.md), der aktuelle Stand in [HANDOVER.md](HANDOVER.md).
+See [SPEC/SPEC.md](SPEC/SPEC.md) for details and [HANDOVER.md](HANDOVER.md) for the current state.
