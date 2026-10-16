@@ -8,9 +8,10 @@
 **Revision:** 2026-10-16 — completeness audit: DB path, credentials and time format fixed, backup/recovery (copy on start) added, purpose and non-goals aligned with the service architecture.
 **Revision:** 2026-10-16 — delete/edit decided (user): no delete anywhere (append-only, "mark as finished"), `PATCH /tasks/{id}` equivalent added for title/description.
 **Revision:** 2026-10-16 — scope narrowed (user request): the server runs on one machine only. OneDrive sync ADR, lock file and conflict-copy check dropped without replacement. `StartupType` set to `Automatic`.
-**Revision:** 2026-10-16 — **Architecture consolidation (4th pivot).** Storage moved from H2 to Markdown files with YAML frontmatter. The Java/Spring Boot service is dropped entirely: its only compelling reason (H2 speaks JDBC natively, no driver bridge risk) disappears with the storage change, since text files need no driver in any language. Phase 2 confirmed as a **desktop app** instead of a browser UI, so it needs no HTTP service either. The project is now pure Python with no JVM dependency. See "Discarded predecessors" below for a summary of all four pivots. `SPEC/api-contract.yaml` stays as historical evidence (its header marks it obsolete), replaced by `Implementation/oloop/schemas/*.schema.json`.
+**Revision:** 2026-10-16 — **Architecture consolidation (4th pivot).** Storage moved from H2 to Markdown files with YAML frontmatter. The Java/Spring Boot service is dropped entirely: its only compelling reason (H2 speaks JDBC natively, no driver bridge risk) disappears with the storage change, since text files need no driver in any language. Phase 2 confirmed as a **desktop app** instead of a browser UI, so it needs no HTTP service either. The project is now pure Python with no JVM dependency. See "Discarded predecessors" below for a summary of all four pivots. `SPEC/api-contract.yaml` stays as historical evidence (its header marks it obsolete), replaced by `SPEC/schemas/*.schema.json`.
 **Revision:** 2026-10-16 — task fields `createdBy`, `updatedBy`, `labels` added (user request).
 **Revision:** 2026-10-16 — project fields `referencePath`, `referenceHost` added (optional), plus `project find`. Project renamed from "Lagebericht" to "oloop"; all documents translated to English.
+**Revision:** 2026-10-16 — schemas moved to `SPEC/schemas/` (single source), `formatVersion` field added, conformance fixtures added in `SPEC/fixtures/`. Prepares a later split into an `oloop-spec` repo.
 **Revision:** 2026-10-16 — spec approved by the user. MCP wrapper not needed for now.
 
 ## Discarded predecessors
@@ -65,7 +66,7 @@ Many small files instead of one binary file are more robust by nature: one damag
 ```
 <data-root>/                       -- path configurable (CLI config/ENV, no hardcoding)
   <project-slug>/
-    project.md                     -- frontmatter: id (UUID), name, createdAt,
+    project.md                     -- frontmatter: formatVersion, id (UUID), name, createdAt,
                                        optional referencePath, referenceHost
     tasks/
       <task-id>.md                 -- file name = UUID, stable over the task's lifetime
@@ -78,6 +79,7 @@ Many small files instead of one binary file are more robust by nature: one damag
 Frontmatter per task (YAML header, `python-frontmatter` compatible):
 
 ```yaml
+formatVersion: 1
 id: <uuid>
 projectId: <uuid>
 type: todo|question|decision|feature|bug
@@ -94,7 +96,11 @@ comments:
     createdAt: 2026-10-16T12:05:00Z
 ```
 
-Markdown body = `description`. **Authoritative for the exact structure:** `Implementation/oloop/schemas/project.schema.json` and `Implementation/oloop/schemas/task.schema.json` (JSON Schema, taking over the role `api-contract.yaml` had before; the schema files win on conflict).
+Markdown body = `description`. **Authoritative for the exact structure:** `SPEC/schemas/project.schema.json` and `SPEC/schemas/task.schema.json` (JSON Schema, taking over the role `api-contract.yaml` had before; the schema files win on conflict). The Python package carries a copy so the wheel is self-contained; `Implementation/sync_schemas.py` refreshes it and a test fails if it drifts.
+
+**Conformance fixtures:** `SPEC/fixtures/` holds shared test data (valid data roots with the expected result, invalid ones with the expected error). Every implementation should pass them. See `SPEC/fixtures/README.md`.
+
+**`formatVersion`:** integer in the frontmatter of every file, currently `1`. Writers always set it. Readers treat a missing value as 1 and must refuse a value higher than the one they know, so an old client never rewrites data it does not understand. It increases only for changes an old reader cannot handle; adding an optional field does not.
 
 **Relative `image_path`, file instead of BLOB:** unchanged from the predecessors, and now the natural solution for file-based persistence anyway.
 

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oloop.local/schema/task.schema.json",
+  "title": "Task",
+  "description": "Frontmatter schema for tasks/<task-id>.md. The Markdown body of the file is the description. Authoritative on conflict with SPEC.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "projectId", "type", "title", "status", "createdAt", "createdBy", "updatedAt", "updatedBy", "labels"],
+  "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Version of the file format. Optional for reading (absent means 1), always written by the tool. Readers must refuse versions they do not know."
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID4. Identical to the file name (without .md). Stays stable over the task's lifetime, even after title edits."
+    },
+    "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Must reference an existing Project.id."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["todo", "question", "decision", "feature", "bug"]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Editable (updatedAt is updated). The file name does NOT change."
+    },
+    "imagePath": {
+      "type": ["string", "null"],
+      "description": "Relative to the project folder, e.g. 'images/<task-id>.png'. Null until an image is set."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "closed"],
+      "description": "Label per type in the presentation layer (e.g. todo->Done, question->Answered). The data model only knows open/closed. No delete: this is the only completion mechanism."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC, ISO 8601 with Z."
+    },
+    "createdBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Actor who created the task (free text, e.g. user name or 'claude'). Immutable."
+    },
+    "updatedBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Actor of the last content change; set together with updatedAt."
+    },
+    "labels": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Free labels. Order as assigned, no duplicates, empty allowed.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 100 }
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC, ISO 8601 with Z. Updated on every content change (edit, close/reopen, image, comment). Central field for the tool's 'silent since' purpose."
+    },
+    "comments": {
+      "type": "array",
+      "description": "Append-only, no delete, no edits. Chronological by createdAt.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["body", "createdAt"],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

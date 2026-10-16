@@ -1,7 +1,7 @@
 # OBSOLETE — see SPEC.md revision 2026-10-16 "Architecture consolidation (4th pivot)".
 # The service/H2/JDBC architecture was replaced by file-based persistence (no HTTP service
 # any more). This file stays as historical evidence and is NO LONGER the authoritative
-# contract. Authoritative now: Implementation/oloop/schemas/{project,task}.schema.json.
+# contract. Authoritative now: SPEC/schemas/{project,task}.schema.json.
 # The remainder of this file is untranslated (German) on purpose.
 openapi: 3.0.3
 info:

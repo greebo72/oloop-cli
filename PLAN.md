@@ -21,7 +21,7 @@ The order is dependency order, not necessarily chronological.
 - ~~[ ] **AP4c — CLI/MCP as HTTP client**~~ — dropped, CLI/MCP now call a Python module directly instead of HTTP.
 
 - [x] **AP2'' — File format module**
-  Python package (`oloop/store.py` or similar): read/write frontmatter (`python-frontmatter` or a minimal implementation of our own), atomic writing (temp file + `os.replace`), UUID assignment, project/task resolution (name → folder, ID → file), backup copy before writing (SPEC "Backup/recovery"). Validates against `Implementation/oloop/schemas/*.schema.json`. Depends on: AP1, SPEC approved.
+  Python package (`oloop/store.py` or similar): read/write frontmatter (`python-frontmatter` or a minimal implementation of our own), atomic writing (temp file + `os.replace`), UUID assignment, project/task resolution (name → folder, ID → file), backup copy before writing (SPEC "Backup/recovery"). Validates against `SPEC/schemas/*.schema.json` (copy in the package). Depends on: AP1, SPEC approved.
 
 - [x] **AP4'' — CLI commands**
   `project add/list/edit/find`, `task add/list/show/edit/close/reopen/image`, `comment add`. Functionally identical to the former HTTP endpoints (SPEC "File format" / the discarded `api-contract.yaml` as reference for the filter parameters: project, type, status, stale days). `--json` on read commands. Directly against AP2'', no network layer. Depends on: AP2''.

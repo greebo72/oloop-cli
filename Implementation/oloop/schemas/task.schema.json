@@ -7,6 +7,11 @@
   "additionalProperties": false,
   "required": ["id", "projectId", "type", "title", "status", "createdAt", "createdBy", "updatedAt", "updatedBy", "labels"],
   "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Version of the file format. Optional for reading (absent means 1), always written by the tool. Readers must refuse versions they do not know."
+    },
     "id": {
       "type": "string",
       "format": "uuid",

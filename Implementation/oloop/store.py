@@ -31,6 +31,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 ENV_ROOT = "OLOOP_ROOT"
 ENV_ACTOR = "OLOOP_ACTOR"
+FORMAT_VERSION = 1  # file format version written by this tool and the newest one it can read
 LEGACY_ENV_PREFIX = "LAGEBERICHT_"  # alter Toolname, Fallback
 
 
@@ -77,6 +78,15 @@ def _validator(name: str) -> Draft202012Validator:
 
 _project_validator = _validator("project.schema.json")
 _task_validator = _validator("task.schema.json")
+
+
+def _check_format_version(data: dict, where: str) -> None:
+    """Refuse files written in a newer format, before schema errors can obscure the cause."""
+    version = data.get("formatVersion", 1)
+    if isinstance(version, int) and version > FORMAT_VERSION:
+        raise ValidationError(
+            f"{where}: file format version {version} is newer than supported ({FORMAT_VERSION})"
+        )
 
 
 def _validate(validator: Draft202012Validator, data: dict, where: str) -> None:
@@ -161,9 +171,15 @@ class Project:
     slug: str = ""
     referencePath: str | None = None
     referenceHost: str | None = None
+    formatVersion: int = FORMAT_VERSION
 
     def frontmatter(self) -> dict[str, Any]:
-        d: dict[str, Any] = {"id": self.id, "name": self.name, "createdAt": self.createdAt}
+        d: dict[str, Any] = {
+            "formatVersion": self.formatVersion,
+            "id": self.id,
+            "name": self.name,
+            "createdAt": self.createdAt,
+        }
         if self.referencePath:
             d["referencePath"] = self.referencePath
         if self.referenceHost:
@@ -189,9 +205,11 @@ class Task:
     imagePath: str | None = None
     comments: list[Comment] = field(default_factory=list)
     projectName: str = ""
+    formatVersion: int = FORMAT_VERSION
 
     def frontmatter(self) -> dict[str, Any]:
         return {
+            "formatVersion": self.formatVersion,
             "id": self.id,
             "projectId": self.projectId,
             "type": self.type,
@@ -234,6 +252,7 @@ class Store:
             data, _ = _parse(path.read_text(encoding="utf-8"), str(path))
         except FileNotFoundError:
             raise NotFound(f"Project folder without project.md: {slug}") from None
+        _check_format_version(data, str(path))
         _validate(_project_validator, data, str(path))
         return Project(slug=slug, **data)
 
@@ -326,6 +345,7 @@ class Store:
 
     def _read_task(self, path: Path, project: Project) -> Task:
         data, body = _parse(path.read_text(encoding="utf-8"), str(path))
+        _check_format_version(data, str(path))
         _validate(_task_validator, data, str(path))
         if data["id"] != path.stem:
             raise ValidationError(f"{path}: id {data['id']} != file name")
