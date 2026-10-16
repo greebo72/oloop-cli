@@ -29,7 +29,7 @@ Reihenfolge ist Abhängigkeitsreihenfolge, nicht zwingend zeitlich.
 - ~~[ ] **AP4c — CLI/MCP als HTTP-Client**~~ — entfällt, CLI/MCP rufen jetzt direkt ein
   Python-Modul statt HTTP.
 
-- [ ] **AP2'' — Dateiformat-Modul**
+- [x] **AP2'' — Dateiformat-Modul**
   Python-Paket (`lagebericht/store.py` o. ä.): Frontmatter lesen/schreiben (`python-frontmatter`
   oder eigene minimale Implementierung), atomares Schreiben (Temp-Datei + `os.replace`),
   UUID-Vergabe, Projekt-/Task-Auflösung (Name → Ordner, ID → Datei), Backup-Kopie vor Schreiben

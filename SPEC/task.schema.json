@@ -5,7 +5,7 @@
   "description": "Frontmatter-Schema für tasks/<task-id>.md. Markdown-Body des Files = description. Maßgeblich bei Widerspruch zu SPEC.md.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "projectId", "type", "title", "status", "createdAt", "updatedAt"],
+  "required": ["id", "projectId", "type", "title", "status", "createdAt", "createdBy", "updatedAt", "updatedBy", "labels"],
   "properties": {
     "id": {
       "type": "string",
@@ -40,6 +40,22 @@
       "type": "string",
       "format": "date-time",
       "description": "UTC, ISO 8601 mit Z."
+    },
+    "createdBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Akteur, der den Task angelegt hat (Freitext, z. B. Benutzername oder 'claude'). Unveränderlich."
+    },
+    "updatedBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Akteur der letzten inhaltlichen Änderung; wird zusammen mit updatedAt gesetzt."
+    },
+    "labels": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Freie Labels. Reihenfolge wie vergeben, keine Duplikate, leer erlaubt.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 100 }
     },
     "updatedAt": {
       "type": "string",

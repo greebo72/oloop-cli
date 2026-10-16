@@ -16,6 +16,8 @@ vollständig Python, keine JVM-Abhängigkeit mehr. Siehe „Verworfene Vorstufen
 Zusammenfassung aller vier Pivots; `SPEC/api-contract.yaml` bleibt als historischer Beleg liegen
 (Kopfzeile markiert es als überholt), ersetzt durch `SPEC/*.schema.json`.
 
+**Revision:** 2026-10-16 — Task-Felder `createdBy`, `updatedBy`, `labels` ergänzt (User-Wunsch).
+
 ## Verworfene Vorstufen
 
 Kurzfassung für kalt einsteigende Leser — vier echte Architektur-Pivots in dieser Spec-Historie,
@@ -142,7 +144,10 @@ title: "..."
 status: open|closed
 imagePath: null | "images/<task-id>.<ext>"
 createdAt: 2026-10-16T12:00:00Z
+createdBy: user
 updatedAt: 2026-10-16T12:00:00Z
+updatedBy: user
+labels: [backend, urgent]
 comments:
   - body: "..."
     createdAt: 2026-10-16T12:05:00Z
@@ -154,6 +159,10 @@ bei Widerspruch gelten die Schema-Dateien).
 
 **`image_path` relativ, Datei statt BLOB:** unverändert aus den Vorstufen — jetzt ohnehin die
 natürliche Lösung bei Dateibasierter Persistenz.
+
+**`createdBy`/`updatedBy`/`labels`:** Akteur als Freitext-String (Quelle: Parameter, sonst
+`$LAGEBERICHT_ACTOR`, sonst OS-Benutzername). `updatedBy` wird bei jeder Änderung zusammen mit
+`updatedAt` gesetzt, `createdBy` nie. `labels` = Liste eindeutiger Strings, per Edit ersetzbar.
 
 **Ein `status`-Feld, kein Enum pro Typ:** Label in der Darstellungsschicht variiert pro Typ (todo →
 „Erledigt", question → „Geklärt", decision → „Entschieden", feature → „Umgesetzt", bug →
