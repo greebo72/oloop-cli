@@ -8,7 +8,8 @@
 2. `SPEC/schemas/{project,task}.schema.json` — authoritative for the frontmatter structure. The package carries a copy so the wheel can validate; run `python sync_schemas.py` in `Implementation/` after changing a schema (a test catches drift). `SPEC/fixtures/` holds shared conformance data.
 3. `SPEC/api-contract.yaml` — **obsolete** (HTTP/H2 architecture). Historical evidence only, still in German.
 4. `PLAN.md` — AP1, AP2'' and AP4'' done. Open: **AP4d (MCP wrapper, optional, postponed)** and **AP6 (phase 2 desktop app, own approval)**. Struck-through work packages are discarded.
-5. `Implementation/` — `oloop/store.py` (store), `oloop/cli.py` (CLI), `tests/`.
+5. `SPEC/app-brief.md` + `SPEC/build_bundle.py` — platform-neutral brief for building a client app (Android, iOS) with an AI app builder. `python SPEC/build_bundle.py` writes one upload file to `SPEC/dist/oloop-app-bundle.md` (not in git); replace the `{{TARGET PLATFORM}}` placeholder before use.
+6. `Implementation/` — `oloop/store.py` (store), `oloop/cli.py` (CLI), `tests/`.
 
 ## Implementation status
 
