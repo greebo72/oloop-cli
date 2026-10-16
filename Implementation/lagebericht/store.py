@@ -416,3 +416,23 @@ class Store:
             t.imagePath = rel
 
         return self._update(task_id, mutate)
+
+    def add_attachment(self, task_id: str, source: str | os.PathLike[str]) -> tuple[Task, str]:
+        """Zusätzliches Bild als `images/<task-id>-<n>.<ext>` ablegen (für Links in der
+        Description). Liefert (Task, Pfad relativ zur Task-Datei, z. B. `../images/...`)."""
+        src = Path(source)
+        if not src.is_file():
+            raise NotFound(f"Bilddatei nicht gefunden: {src}")
+        project, _ = self._find_task(task_id)
+        images = self._project_dir(project.slug) / "images"
+        images.mkdir(exist_ok=True)
+        n = 1
+        while True:
+            dest = images / f"{task_id}-{n}{src.suffix.lower()}"
+            try:
+                with open(dest, "xb") as out, open(src, "rb") as inp:
+                    shutil.copyfileobj(inp, out)
+                break
+            except FileExistsError:
+                n += 1
+        return self._update(task_id, lambda t: None), f"../images/{dest.name}"

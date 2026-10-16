@@ -98,6 +98,16 @@ def cmd_task_reopen(store, args):
     print(f"Task wieder geöffnet: {store.reopen_task(_task_id(store, args)).id}")
 
 
+def cmd_task_image(store, args):
+    tid = _task_id(store, args)
+    if args.embed:
+        _, link = store.add_attachment(tid, args.file)
+        print(f"![{args.file.rsplit('/', 1)[-1]}]({link})")
+    else:
+        t = store.set_image(tid, args.file)
+        print(f"Hauptbild gesetzt: {t.imagePath}")
+
+
 def cmd_comment_add(store, args):
     t = store.add_comment(_task_id(store, args), args.body)
     print(f"Kommentar hinzugefügt: {t.id}")
@@ -144,6 +154,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--label", "-l", action="append", default=None,
                    help="ersetzt alle Labels (mehrfach angebbar)")
     p.add_argument("--clear-labels", action="store_true")
+
+    p = leaf(task, "image", cmd_task_image)
+    p.add_argument("id")
+    p.add_argument("file")
+    p.add_argument("--embed", action="store_true",
+                   help="als zusätzliches Bild ablegen, Markdown-Link für die Description ausgeben")
 
     leaf(task, "close", cmd_task_close).add_argument("id")
     leaf(task, "reopen", cmd_task_reopen).add_argument("id")

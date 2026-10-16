@@ -59,3 +59,15 @@ def test_errors(run):
     assert run("task", "add", "-p", "A", "-t", "todo", " ")[0] == 1
     with pytest.raises(SystemExit):
         run("task", "add", "-p", "A", "-t", "epic", "x")
+
+
+def test_image(run, tmp_path):
+    run("project", "add", "A")
+    tid = run("task", "add", "-p", "A", "-t", "todo", "x")[1].split(": ")[1].strip()
+    img = tmp_path / "shot.png"
+    img.write_bytes(b"x")
+    code, out, _ = run("task", "image", tid[:8], str(img))
+    assert code == 0 and f"images/{tid}.png" in out
+    code, out, _ = run("task", "image", tid[:8], str(img), "--embed")
+    assert out.strip() == f"![shot.png](../images/{tid}-1.png)"
+    assert run("task", "image", tid[:8], str(tmp_path / "nope.png"))[0] == 1

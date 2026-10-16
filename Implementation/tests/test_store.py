@@ -160,3 +160,17 @@ def test_actor_and_labels(tmp_path, monkeypatch):
 def test_actor_from_env(tmp_path, monkeypatch):
     monkeypatch.setenv("LAGEBERICHT_ACTOR", "envuser")
     assert Store(tmp_path).actor == "envuser"
+
+
+def test_add_attachment(store, tmp_path):
+    store.add_project("A")
+    t = store.add_task("A", "todo", "x")
+    img = tmp_path / "a.jpg"
+    img.write_bytes(b"1")
+    t1, l1 = store.add_attachment(t.id, img)
+    _, l2 = store.add_attachment(t.id, img)
+    assert l1 == f"../images/{t.id}-1.jpg" and l2 == f"../images/{t.id}-2.jpg"
+    assert (store.root / "a" / "tasks" / l2).resolve().read_bytes() == b"1"
+    assert t1.imagePath is None  # Hauptbild unberührt
+    with pytest.raises(NotFound):
+        store.add_attachment(t.id, tmp_path / "nope.jpg")
