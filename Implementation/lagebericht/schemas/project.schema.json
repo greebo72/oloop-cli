@@ -10,7 +10,7 @@
     "id": {
       "type": "string",
       "format": "uuid",
-      "description": "UUID4. Identisch mit dem übergeordneten Ordnernamen des Projekts."
+      "description": "UUID4. Stabile Kennung des Projekts. Der Ordnername ist nicht die id, sondern der Slug des Namens."
     },
     "name": {
       "type": "string",
@@ -22,6 +22,16 @@
       "type": "string",
       "format": "date-time",
       "description": "UTC, ISO 8601 mit Z."
+    },
+    "referencePath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional. Absoluter Pfad des zugehörigen Arbeitsverzeichnisses (z. B. Repo), von dem aus Tasks angelegt wurden."
+    },
+    "referenceHost": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional. Rechnername, auf dem referencePath gilt."
     }
   }
 }

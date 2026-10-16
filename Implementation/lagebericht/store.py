@@ -17,6 +17,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import tempfile
 import unicodedata
 import uuid
@@ -152,9 +153,18 @@ class Project:
     name: str
     createdAt: str
     slug: str = ""
+    referencePath: str | None = None
+    referenceHost: str | None = None
 
-    def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "name": self.name, "createdAt": self.createdAt}
+    def frontmatter(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"id": self.id, "name": self.name, "createdAt": self.createdAt}
+        if self.referencePath:
+            d["referencePath"] = self.referencePath
+        if self.referenceHost:
+            d["referenceHost"] = self.referenceHost
+        return d
+
+    to_dict = frontmatter
 
 
 @dataclass
@@ -238,7 +248,12 @@ class Store:
                 return p
         raise NotFound(f"Projekt nicht gefunden: {name!r}")
 
-    def add_project(self, name: str) -> Project:
+    def add_project(
+        self,
+        name: str,
+        reference_path: str | None = None,
+        reference_host: str | None = None,
+    ) -> Project:
         name = name.strip()
         slug = slugify(name)
         if any(p.name.casefold() == name.casefold() for p in self.list_projects()):
@@ -246,11 +261,39 @@ class Store:
         pdir = self._project_dir(slug)
         if pdir.exists():
             raise Conflict(f"Slug-Kollision: Ordner {slug!r} existiert bereits")
-        data = {"id": str(uuid.uuid4()), "name": name, "createdAt": now_utc()}
+        project = Project(id=str(uuid.uuid4()), name=name, createdAt=now_utc(), slug=slug)
+        self._apply_reference(project, reference_path, reference_host)
+        data = project.frontmatter()
         _validate(_project_validator, data, "project")
         (pdir / "tasks").mkdir(parents=True)
         _atomic_write(pdir / "project.md", _render(data))
-        return Project(slug=slug, **data)
+        return project
+
+    @staticmethod
+    def _apply_reference(
+        project: Project, path: str | None, host: str | None
+    ) -> None:
+        if path is not None:
+            project.referencePath = path.strip() or None
+        if host is not None:
+            project.referenceHost = host.strip() or None
+        elif path and not project.referenceHost:
+            project.referenceHost = socket.gethostname()
+
+    def edit_project(
+        self,
+        name: str,
+        reference_path: str | None = None,
+        reference_host: str | None = None,
+    ) -> Project:
+        """Setzt referencePath/referenceHost; leerer String entfernt das Feld."""
+        project = self.get_project(name)
+        self._apply_reference(project, reference_path, reference_host)
+        data = project.frontmatter()
+        _validate(_project_validator, data, "project")
+        pdir = self._project_dir(project.slug)
+        _write_with_backup(pdir / "project.md", _render(data), pdir / ".backup")
+        return project
 
     # ---- Tasks ----------------------------------------------------------
 

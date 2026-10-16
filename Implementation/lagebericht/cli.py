@@ -42,8 +42,13 @@ def _task_id(store: Store, args) -> str:
 
 
 def cmd_project_add(store, args):
-    p = store.add_project(args.name)
+    p = store.add_project(args.name, args.reference_path, args.host)
     print(f"Projekt angelegt: {p.name} ({p.id})")
+
+
+def cmd_project_edit(store, args):
+    p = store.edit_project(args.name, args.reference_path, args.host)
+    print(f"Projekt geändert: {p.name}")
 
 
 def cmd_project_list(store, args):
@@ -51,7 +56,8 @@ def cmd_project_list(store, args):
     if args.json:
         return _dump([p.to_dict() for p in projects])
     for p in projects:
-        print(p.name)
+        ref = f"  {p.referenceHost or '?'}:{p.referencePath}" if p.referencePath else ""
+        print(f"{p.name}{ref}")
 
 
 def cmd_task_add(store, args):
@@ -127,7 +133,11 @@ def build_parser() -> argparse.ArgumentParser:
         return p
 
     proj = sub.add_parser("project").add_subparsers(dest="cmd", required=True)
-    leaf(proj, "add", cmd_project_add).add_argument("name")
+    for cmd, fn in (("add", cmd_project_add), ("edit", cmd_project_edit)):
+        p = leaf(proj, cmd, fn)
+        p.add_argument("name")
+        p.add_argument("--reference-path", help="Arbeitsverzeichnis; leer entfernt")
+        p.add_argument("--host", help="Rechnername; Default bei Pfad: dieser Rechner")
     leaf(proj, "list", cmd_project_list, True)
 
     task = sub.add_parser("task").add_subparsers(dest="cmd", required=True)

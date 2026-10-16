@@ -42,6 +42,19 @@ def test_project_add_list_conflict(store):
         store.get_project("nope")
 
 
+def test_project_reference(store):
+    p = store.add_project("Ref", reference_path="/work/ref", reference_host="mac1")
+    assert store.get_project("Ref").referencePath == "/work/ref"
+    assert store.get_project("Ref").referenceHost == "mac1"
+    store.add_project("Plain")
+    assert "referencePath" not in store.get_project("Plain").to_dict()
+    store.edit_project("Plain", reference_path="/work/plain")
+    assert store.get_project("Plain").referenceHost  # Default: dieser Rechner
+    store.edit_project("Ref", reference_path="")
+    assert store.get_project("Ref").referencePath is None
+    assert p.id == store.get_project("Ref").id
+
+
 def test_task_roundtrip(store):
     store.add_project("A")
     t = store.add_task("A", "todo", "Titel: mit # Sonderzeichen", "Beschreibung\n\nzwei Absätze äöü")

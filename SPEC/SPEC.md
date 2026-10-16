@@ -125,7 +125,8 @@ Wails (Go) mit System-WebView statt gebündeltem Chromium; alternativ eine nativ
 ```
 <daten-root>/                      -- Pfad konfigurierbar (CLI-Config/ENV, kein Hardcoding)
   <project-slug>/
-    project.md                     -- Frontmatter: id (UUID), name, createdAt
+    project.md                     -- Frontmatter: id (UUID), name, createdAt,
+                                       optional referencePath, referenceHost
     tasks/
       <task-id>.md                 -- Dateiname = UUID, stabil über die Lebenszeit des Tasks
                                        (Titel-Änderung benennt die Datei NICHT um — Referenzen/
