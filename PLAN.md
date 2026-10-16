@@ -29,8 +29,8 @@ The order is dependency order, not necessarily chronological.
 - [ ] **AP4d — MCP wrapper** *(not needed for now, user decision 2026-10-16)*
   Thin layer importing the same Python module as the CLI (AP2''). Depends on: AP2''.
 
-- [ ] **AP6 — Phase 2: desktop app** *(separate spec chapter, own approval)*
-  Toolkit decision (SPEC ADR observation: Electron probably too heavy for "small and fast", Tauri/Wails/native GUI as candidates), then implementation in the look of the artifact prototype, reading and writing the same files (directly or via AP2'', depending on the toolkit language). Depends on: AP4'', some real use via the CLI.
+- [ ] **AP6 — Phase 2: desktop clients** *(own approval per client)*
+  Decided in SPEC "Desktop clients": macOS with SwiftUI in the same project as the iOS client (`oloop-ios`), Windows with .NET/WPF (provisional, revisit after the Apple clients). Each client re-implements the file format and passes `SPEC/fixtures/`. Order: iOS/iPadOS, then macOS, then Windows. Depends on: AP4'', some real use via the CLI.
 
 ## Risk table
 

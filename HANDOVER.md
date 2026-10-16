@@ -7,7 +7,7 @@
 1. `SPEC/SPEC.md` — start with **"Discarded predecessors"**: four architecture pivots, summarized briefly. Then purpose, non-goals, the ADR "File-based persistence, no service", and the "File format" section.
 2. `SPEC/schemas/{project,task}.schema.json` — authoritative for the frontmatter structure. The package carries a copy so the wheel can validate; run `python sync_schemas.py` in `Implementation/` after changing a schema (a test catches drift). `SPEC/fixtures/` holds shared conformance data.
 3. `SPEC/api-contract.yaml` — **obsolete** (HTTP/H2 architecture). Historical evidence only, still in German.
-4. `PLAN.md` — AP1, AP2'' and AP4'' done. Open: **AP4d (MCP wrapper, optional, postponed)** and **AP6 (phase 2 desktop app, own approval)**. Struck-through work packages are discarded.
+4. `PLAN.md` — AP1, AP2'' and AP4'' done. Open: **AP4d (MCP wrapper, optional, postponed)** and **AP6 (phase 2 desktop clients, own approval per client)**. Struck-through work packages are discarded.
 5. `SPEC/app-brief.md` + `SPEC/build_bundle.py` — platform-neutral brief for building a client app (Android, iOS) with an AI app builder. `python SPEC/build_bundle.py` writes one upload file to `SPEC/dist/oloop-app-bundle.md` (not in git); replace the `{{TARGET PLATFORM}}` placeholder before use.
 6. `Implementation/` — `oloop/store.py` (store), `oloop/cli.py` (CLI), `tests/`.
 
@@ -50,5 +50,5 @@
 ## Next steps
 
 1. Use `oloop` for a while in real work. AP4d (MCP) is not needed for now.
-2. AP6 (desktop app): own spec chapter, toolkit choice (Tauri/Wails/native instead of Electron), a "silent since" view based on `updatedAt`. Only after real use and its own approval.
+2. AP6 (desktop clients): decided in SPEC "Desktop clients" (macOS SwiftUI together with iOS, Windows WPF provisional). Order: iOS/iPadOS (`oloop-ios`, brief and tasks exist), then macOS, then Windows. Include a "silent since" view based on `updatedAt`.
 3. Code comments and docstrings are still German.

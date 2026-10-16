@@ -11,6 +11,7 @@
 **Revision:** 2026-10-16 — **Architecture consolidation (4th pivot).** Storage moved from H2 to Markdown files with YAML frontmatter. The Java/Spring Boot service is dropped entirely: its only compelling reason (H2 speaks JDBC natively, no driver bridge risk) disappears with the storage change, since text files need no driver in any language. Phase 2 confirmed as a **desktop app** instead of a browser UI, so it needs no HTTP service either. The project is now pure Python with no JVM dependency. See "Discarded predecessors" below for a summary of all four pivots. `SPEC/api-contract.yaml` stays as historical evidence (its header marks it obsolete), replaced by `SPEC/schemas/*.schema.json`.
 **Revision:** 2026-10-16 — task fields `createdBy`, `updatedBy`, `labels` added (user request).
 **Revision:** 2026-10-16 — project fields `referencePath`, `referenceHost` added (optional), plus `project find`. Project renamed from "Lagebericht" to "oloop"; all documents translated to English.
+**Revision:** 2026-10-16 — desktop client decision: macOS with SwiftUI (shared with iOS), Windows with WPF (provisional). Replaces the open toolkit question in phase 2.
 **Revision:** 2026-10-16 — schemas moved to `SPEC/schemas/` (single source), `formatVersion` field added, conformance fixtures added in `SPEC/fixtures/`. Prepares a later split into an `oloop-spec` repo.
 **Revision:** 2026-10-16 — spec approved by the user. MCP wrapper not needed for now.
 
@@ -35,8 +36,8 @@ Predecessor: Claude artifact prototype (`claude.ai/code/artifact/ad6da2b6-...`, 
 
 - **Multi-user/auth** — single-user tool, no login, no role model.
 - **Multiple devices** — the tool runs on one machine only (user decision). No sync protection, no cross-device locking, no conflict-copy detection.
-- **UI** — phase 2, own chapter and revision. This spec covers file format, Python module and CLI. Phase 2 is confirmed as a desktop app (not browser); the toolkit choice stays open.
-- **Network/service layer** — deliberately none. CLI, MCP wrapper and desktop app access the files directly (or a shared Python module if the desktop app is Python-based, otherwise re-implemented against the documented file format).
+- **UI** — phase 2, own chapter and revision. This spec covers file format, Python module and CLI. Phase 2 is native desktop apps (not browser), see "Desktop clients".
+- **Network/service layer** — deliberately none. CLI, MCP wrapper and desktop app access the files directly (each client re-implements the documented file format).
 - **Direct editing of the files by the user** — explicit requirement. The Markdown files are an implementation detail of the tool, not a user interface.
 
 ## Measurements (2026-10-16, this machine)
@@ -59,7 +60,7 @@ Many small files instead of one binary file are more robust by nature: one damag
 
 **What this gives up, accepted on purpose:** Without a central service there is no built-in serialization of writes. Mitigation: atomic writing (temp file in the same directory + `os.replace`) prevents broken or half-written files. A real race between two *simultaneous* writes to the same task (for example the CLI and a future desktop app at the same moment) remains a residual risk: last writer wins, no lock. Accepted for a single-user tool that is rarely used truly concurrently, and documented here rather than left open silently.
 
-**Observation for phase 2, not a decision now:** Electron contradicts the stated "small and fast" (it bundles Chromium, high memory use). Lighter alternatives that could reuse the HTML/CSS/JS look of the artifact prototype: Tauri (Rust) or Wails (Go) with the system WebView instead of bundled Chromium; alternatively a native GUI (for example .NET/WPF, since the target is Windows only). Own spec chapter, own approval, only noted here.
+**Observation for phase 2 (superseded by "Desktop clients"):** Electron contradicts the stated "small and fast" (it bundles Chromium, high memory use). Lighter alternatives that could reuse the HTML/CSS/JS look of the artifact prototype: Tauri (Rust) or Wails (Go) with the system WebView instead of bundled Chromium; alternatively a native GUI (for example .NET/WPF, since the target is Windows only). Own spec chapter, own approval, only noted here.
 
 ## File format
 
@@ -120,9 +121,20 @@ Markdown body = `description`. **Authoritative for the exact structure:** `SPEC/
 
 **Timestamps:** UTC, ISO 8601 with `Z`. Localization happens on the display side (CLI/UI), not in the file format. Relevant for the stale-days filter in the CLI.
 
-## Phase 2
+## Desktop clients (phase 2)
 
-Desktop app (user decision, "small and fast"), look and structure like the artifact shown (sidebar project filter, type tabs/stat tiles, cards with status toggle), plus "silent since" as a new view (follows from `updatedAt`). Toolkit TBD, see the ADR observation above (Electron probably too heavy for "small and fast", Tauri/Wails/native GUI as candidates). Own spec chapter, own approval, only after approval and use of this version.
+**Decision (2026-10-16, Windows part provisional):** two native desktop apps, no shared UI code and no OS-integration-only solution. "Small and fast" is the priority; the UI may adopt each platform's native look.
+
+- **macOS:** SwiftUI, in the same multiplatform project as the iOS/iPadOS client (`oloop-ios`), so the parser/writer module and most views are shared across iPhone, iPad and Mac.
+- **Windows (provisional):** .NET with WPF, Fluent theme where available. Chosen for being small, fast, mature and deployable as a plain EXE without MSIX signing. Revisit once the iOS and macOS clients exist. Switch to WinUI 3 if the modern Windows 11 look matters more than tooling maturity; parser and logic stay the same, only the UI layer changes.
+- **Rejected:** Electron (bundles Chromium, contradicts "small and fast"); Tauri/Wails (web UI does not blend into the native look); Avalonia (draws its own controls); calling the Python CLI as a sidecar (needs Python or a bundled runtime on every machine, fragile); relying on OS features alone (Spotlight, Quick Look, widgets cannot provide editing, grouping and validated writes).
+- **Obsidian as a stopgap view** over the data root can show lists and grouping, but it edits files by hand without validation or `updatedAt`, which breaks the non-goal "no direct editing". Fine as a short experiment, not as a client.
+
+**Each client re-implements the file format** (no shared code between Swift, C# and Python). All of them must pass `SPEC/fixtures/`, which is the common yardstick. `SPEC/app-brief.md` is the platform-neutral brief for building a client.
+
+**Look and structure:** project list, task list with the project name in a header, grouping by creation date, modification date, type or status, and an editable task detail, as in the app brief. "Silent since" (follows from `updatedAt`) is a first-class view. Optional later additions that sit on top of a finished app: a menu-bar/tray item with a global shortcut for quick capture, widgets or jump lists.
+
+**Order:** finish iOS/iPadOS first, then macOS (a new target in the same project), then Windows. Own approval per client.
 
 ## Open points
 
@@ -131,5 +143,5 @@ No known approval blockers. Remaining, to be clarified before the respective wor
 - **Concrete data root path.** The spec only fixes that it is configurable (CLI config/ENV, no hardcoding); the actual value comes from the user before the first run.
 - CLI framework (Python, `click` vs. `argparse`), an implementation detail.
 - MCP wrapper: not needed for now (user decision). It would import the same Python module and can be added later if a client without a shell needs it.
-- Phase 2 toolkit (see above), own chapter, not part of this approval.
+- Windows toolkit is provisional (WPF), see "Desktop clients". macOS follows the iOS project.
 - Git remote for this project (local only vs. backup remote). Not asked; `git init` is enough for the commit references required by CLAUDE.md, a remote can follow later.
