@@ -1,6 +1,6 @@
 # HANDOVER — oloop (früher „Lagebericht")
 
-**Stand:** 2026-10-16, v0.1.0 getaggt und gepusht (`greebo72/md_todo`, `origin/main`). SPEC-Entwurf
+**Stand:** 2026-10-16, v0.1.0 getaggt und gepusht (`greebo72/oloop`, `origin/main`). SPEC-Entwurf
 weiterhin formal nicht freigegeben, aber AP1, AP2'' und AP4'' sind umgesetzt und getestet
 (18 Tests). Das CLI ist per `uv tool install` global installiert und für Claude Code
 eingerichtet (siehe „Einrichtung"). Noch kein einziges echtes Projekt im Daten-Root angelegt.
@@ -50,7 +50,7 @@ eingerichtet (siehe „Einrichtung"). Noch kein einziges echtes Projekt im Daten
 
 - **Umbenennung Lagebericht → oloop** (Kurzform von „open loops"; PyPI, Homebrew und GitHub frei
   geprüft). Paket, Befehl und Env-Variablen heißen `oloop` / `OLOOP_ROOT` / `OLOOP_ACTOR`; die alten
-  `LAGEBERICHT_*` gelten als Fallback. Repo-Ordner und GitHub-Repo (`md_todo`) sind unverändert.
+  `LAGEBERICHT_*` gelten als Fallback. Der lokale Repo-Ordner heißt weiter `lagebericht`; GitHub-Repo ist von `md_todo` auf `oloop` umbenannt.
   Das Tracker-Projekt `lagebericht` im Daten-Root behält seinen Namen (Zuordnung läuft über
   `referencePath`).
 - Projekt-Frontmatter: optionale Felder `referencePath`/`referenceHost`; `oloop project find`
