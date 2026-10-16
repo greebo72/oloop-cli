@@ -1,4 +1,4 @@
-"""Runs the shared fixtures from SPEC/fixtures and guards the schema copy."""
+"""Runs the shared fixtures from spec/fixtures (oloop-spec submodule) and guards the schema copy."""
 
 import json
 import shutil
@@ -8,9 +8,12 @@ import pytest
 
 from oloop import Store, StoreError
 
-SPEC = Path(__file__).resolve().parents[2] / "SPEC"
+SPEC = Path(__file__).resolve().parents[1] / "spec"
 FIXTURES = SPEC / "fixtures"
 PKG_SCHEMAS = Path(__file__).resolve().parents[1] / "oloop" / "schemas"
+
+if not (SPEC / "fixtures").is_dir():
+    pytest.fail("spec/ is empty, run `git submodule update --init`", allow_module_level=True)
 
 
 def _cases(kind):
@@ -49,5 +52,5 @@ def test_write_adds_format_version(tmp_path):
 @pytest.mark.parametrize("name", ["project.schema.json", "task.schema.json"])
 def test_package_schema_matches_spec(name):
     assert (PKG_SCHEMAS / name).read_bytes() == (SPEC / "schemas" / name).read_bytes(), (
-        "run `python sync_schemas.py` in Implementation/"
+        "run `python sync_schemas.py`"
     )
