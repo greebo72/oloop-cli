@@ -12,6 +12,9 @@ dev = ["pytest"]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
+[project.scripts]
+lagebericht = "lagebericht.cli:main"
+
 [tool.setuptools]
 packages = ["lagebericht"]
 

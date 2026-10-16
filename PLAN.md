@@ -36,7 +36,7 @@ Reihenfolge ist Abhängigkeitsreihenfolge, nicht zwingend zeitlich.
   (SPEC „Backup/Recovery"). Validiert gegen `SPEC/project.schema.json` / `task.schema.json`.
   Abhängig von: AP1, SPEC freigegeben.
 
-- [ ] **AP4'' — CLI-Befehle**
+- [x] **AP4'' — CLI-Befehle**
   `project add/list`, `task add/list/edit/close/reopen`, `comment add` — fachlich identisch zu den
   vormaligen HTTP-Endpunkten (SPEC „Dateiformat" / verworfene `api-contract.yaml` als Referenz für
   die Filterparameter: `projectName`, `type`, `status`, `staleDays`). `--json` auf lesenden

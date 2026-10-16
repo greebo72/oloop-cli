@@ -283,6 +283,22 @@ class Store:
                 return project, self._read_task(path, project)
         raise NotFound(f"Task nicht gefunden: {task_id}")
 
+    def resolve_task_id(self, prefix: str) -> str:
+        """Eindeutiges ID-Präfix (min. 4 Zeichen) -> volle UUID."""
+        prefix = prefix.strip().lower()
+        if len(prefix) < 4:
+            raise ValidationError("Task-ID-Präfix: mindestens 4 Zeichen")
+        hits = [
+            p.stem
+            for project in self.list_projects()
+            for p in (self._project_dir(project.slug) / "tasks").glob(f"{prefix}*.md")
+        ]
+        if not hits:
+            raise NotFound(f"Task nicht gefunden: {prefix}")
+        if len(hits) > 1:
+            raise Conflict(f"Task-ID-Präfix mehrdeutig: {prefix} ({len(hits)} Treffer)")
+        return hits[0]
+
     def get_task(self, task_id: str) -> Task:
         return self._find_task(task_id)[1]
 
@@ -319,6 +335,7 @@ class Store:
         type: str | None = None,
         status: str | None = None,
         stale_days: float | None = None,
+        label: str | None = None,
         now: datetime | None = None,
     ) -> list[Task]:
         projects = [self.get_project(project_name)] if project_name else self.list_projects()
@@ -335,6 +352,8 @@ class Store:
                 if type and t.type != type:
                     continue
                 if status and t.status != status:
+                    continue
+                if label and label not in t.labels:
                     continue
                 if cutoff and parse_ts(t.updatedAt) > cutoff:
                     continue
