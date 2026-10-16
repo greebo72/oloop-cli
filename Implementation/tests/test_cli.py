@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from lagebericht.cli import main
+from oloop.cli import main
 
 
 @pytest.fixture

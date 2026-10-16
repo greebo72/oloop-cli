@@ -29,8 +29,14 @@ from typing import Any
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-ENV_ROOT = "LAGEBERICHT_ROOT"
-ENV_ACTOR = "LAGEBERICHT_ACTOR"
+ENV_ROOT = "OLOOP_ROOT"
+ENV_ACTOR = "OLOOP_ACTOR"
+LEGACY_ENV_PREFIX = "LAGEBERICHT_"  # alter Toolname, Fallback
+
+
+def _env(name: str) -> str | None:
+    legacy = LEGACY_ENV_PREFIX + name.removeprefix("OLOOP_")
+    return os.environ.get(name) or os.environ.get(legacy)
 TASK_TYPES = ("todo", "question", "decision", "feature", "bug")
 STATUSES = ("open", "closed")
 
@@ -211,8 +217,8 @@ class Store:
     def __init__(
         self, root: str | os.PathLike[str] | None = None, actor: str | None = None
     ):
-        self.actor = actor or os.environ.get(ENV_ACTOR) or getpass.getuser()
-        root = root or os.environ.get(ENV_ROOT)
+        self.actor = actor or _env(ENV_ACTOR) or getpass.getuser()
+        root = root or _env(ENV_ROOT)
         if not root:
             raise StoreError(f"Daten-Root nicht gesetzt (Parameter oder ${ENV_ROOT})")
         self.root = Path(root).expanduser()

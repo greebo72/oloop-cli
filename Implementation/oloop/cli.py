@@ -1,4 +1,4 @@
-"""CLI (AP4''): dünne Schicht über lagebericht.store."""
+"""CLI (AP4''): dünne Schicht über oloop.store."""
 
 from __future__ import annotations
 
@@ -127,9 +127,9 @@ def cmd_comment_add(store, args):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(prog="lagebericht")
-    ap.add_argument("--root", help="Daten-Root (sonst $LAGEBERICHT_ROOT)")
-    ap.add_argument("--actor", help="Akteur für createdBy/updatedBy (sonst $LAGEBERICHT_ACTOR)")
+    ap = argparse.ArgumentParser(prog="oloop")
+    ap.add_argument("--root", help="Daten-Root (sonst $OLOOP_ROOT)")
+    ap.add_argument("--actor", help="Akteur für createdBy/updatedBy (sonst $OLOOP_ACTOR)")
     sub = ap.add_subparsers(dest="group", required=True)
 
     def leaf(parent, name, fn, json_flag=False):

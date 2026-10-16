@@ -1,4 +1,4 @@
-# SPEC — Lagebericht (lokaler Cross-Projekt-Tracker)
+# SPEC — oloop, früher „Lagebericht" (lokaler Cross-Projekt-Tracker)
 
 **Status:** Entwurf (2026-10-16) — noch nicht freigegeben
 
@@ -14,7 +14,7 @@ hinfällig — Textdateien brauchen in keiner Sprache einen Treiber. Phase 2 bes
 **Desktop-App** statt Browser-UI, braucht deshalb ebenfalls keinen HTTP-Service. Projekt ist damit
 vollständig Python, keine JVM-Abhängigkeit mehr. Siehe „Verworfene Vorstufen" unten für die
 Zusammenfassung aller vier Pivots; `SPEC/api-contract.yaml` bleibt als historischer Beleg liegen
-(Kopfzeile markiert es als überholt), ersetzt durch `Implementation/lagebericht/schemas/*.schema.json`.
+(Kopfzeile markiert es als überholt), ersetzt durch `Implementation/oloop/schemas/*.schema.json`.
 
 **Revision:** 2026-10-16 — Task-Felder `createdBy`, `updatedBy`, `labels` ergänzt (User-Wunsch).
 
@@ -154,15 +154,15 @@ comments:
     createdAt: 2026-10-16T12:05:00Z
 ```
 
-Markdown-Body = `description`. **Maßgeblich für die genaue Struktur:** `Implementation/lagebericht/schemas/project.schema.json`,
-`Implementation/lagebericht/schemas/task.schema.json` (JSON Schema, übernimmt die Rolle, die vorher `api-contract.yaml` hatte —
+Markdown-Body = `description`. **Maßgeblich für die genaue Struktur:** `Implementation/oloop/schemas/project.schema.json`,
+`Implementation/oloop/schemas/task.schema.json` (JSON Schema, übernimmt die Rolle, die vorher `api-contract.yaml` hatte —
 bei Widerspruch gelten die Schema-Dateien).
 
 **`image_path` relativ, Datei statt BLOB:** unverändert aus den Vorstufen — jetzt ohnehin die
 natürliche Lösung bei Dateibasierter Persistenz.
 
 **`createdBy`/`updatedBy`/`labels`:** Akteur als Freitext-String (Quelle: Parameter, sonst
-`$LAGEBERICHT_ACTOR`, sonst OS-Benutzername). `updatedBy` wird bei jeder Änderung zusammen mit
+`$OLOOP_ACTOR`, sonst OS-Benutzername). `updatedBy` wird bei jeder Änderung zusammen mit
 `updatedAt` gesetzt, `createdBy` nie. `labels` = Liste eindeutiger Strings, per Edit ersetzbar.
 
 **Ein `status`-Feld, kein Enum pro Typ:** Label in der Darstellungsschicht variiert pro Typ (todo →

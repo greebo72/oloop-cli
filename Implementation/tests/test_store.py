@@ -2,8 +2,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from lagebericht import Conflict, NotFound, Store, ValidationError
-from lagebericht.store import ENV_ROOT, StoreError, slugify
+from oloop import Conflict, NotFound, Store, ValidationError
+from oloop.store import ENV_ROOT, StoreError, slugify
 
 
 @pytest.fixture
@@ -13,6 +13,7 @@ def store(tmp_path):
 
 def test_root_required(monkeypatch):
     monkeypatch.delenv(ENV_ROOT, raising=False)
+    monkeypatch.delenv("LAGEBERICHT_ROOT", raising=False)
     with pytest.raises(StoreError):
         Store()
 
@@ -40,6 +41,18 @@ def test_project_add_list_conflict(store):
         store.add_project("alpha-proj")  # gleicher Slug, anderer Name
     with pytest.raises(NotFound):
         store.get_project("nope")
+
+
+def test_legacy_env_fallback(tmp_path, monkeypatch):
+    monkeypatch.delenv("OLOOP_ROOT", raising=False)
+    monkeypatch.delenv("OLOOP_ACTOR", raising=False)
+    monkeypatch.delenv("LAGEBERICHT_ACTOR", raising=False)
+    monkeypatch.setenv("LAGEBERICHT_ROOT", str(tmp_path))
+    monkeypatch.setenv("LAGEBERICHT_ACTOR", "old")
+    s = Store()
+    assert s.root == tmp_path and s.actor == "old"
+    monkeypatch.setenv("OLOOP_ACTOR", "new")
+    assert Store().actor == "new"
 
 
 def test_project_reference(store):
@@ -169,6 +182,7 @@ def test_set_image(store, tmp_path):
 
 
 def test_actor_and_labels(tmp_path, monkeypatch):
+    monkeypatch.delenv("OLOOP_ACTOR", raising=False)
     monkeypatch.delenv("LAGEBERICHT_ACTOR", raising=False)
     s = Store(tmp_path, actor="user")
     s.add_project("A")
@@ -184,7 +198,7 @@ def test_actor_and_labels(tmp_path, monkeypatch):
 
 
 def test_actor_from_env(tmp_path, monkeypatch):
-    monkeypatch.setenv("LAGEBERICHT_ACTOR", "envuser")
+    monkeypatch.setenv("OLOOP_ACTOR", "envuser")
     assert Store(tmp_path).actor == "envuser"
 
 

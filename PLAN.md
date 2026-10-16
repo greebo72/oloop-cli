@@ -1,4 +1,4 @@
-# PLAN — Lagebericht
+# PLAN — oloop (früher „Lagebericht")
 
 **Revision:** 2026-10-16 — initial, nach SPEC-Entwurf
 **Revision:** 2026-10-16 — Architektur-Schwenk auf Service (Java/Spring Boot) statt Python-CLI mit
@@ -30,10 +30,10 @@ Reihenfolge ist Abhängigkeitsreihenfolge, nicht zwingend zeitlich.
   Python-Modul statt HTTP.
 
 - [x] **AP2'' — Dateiformat-Modul**
-  Python-Paket (`lagebericht/store.py` o. ä.): Frontmatter lesen/schreiben (`python-frontmatter`
+  Python-Paket (`oloop/store.py` o. ä.): Frontmatter lesen/schreiben (`python-frontmatter`
   oder eigene minimale Implementierung), atomares Schreiben (Temp-Datei + `os.replace`),
   UUID-Vergabe, Projekt-/Task-Auflösung (Name → Ordner, ID → Datei), Backup-Kopie vor Schreiben
-  (SPEC „Backup/Recovery"). Validiert gegen `Implementation/lagebericht/schemas/*.schema.json`.
+  (SPEC „Backup/Recovery"). Validiert gegen `Implementation/oloop/schemas/*.schema.json`.
   Abhängig von: AP1, SPEC freigegeben.
 
 - [x] **AP4'' — CLI-Befehle**

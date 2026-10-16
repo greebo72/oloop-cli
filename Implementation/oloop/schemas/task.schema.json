@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://lagebericht.local/schema/task.schema.json",
+  "$id": "https://oloop.local/schema/task.schema.json",
   "title": "Task",
   "description": "Frontmatter-Schema für tasks/<task-id>.md. Markdown-Body des Files = description. Maßgeblich bei Widerspruch zu SPEC.md.",
   "type": "object",

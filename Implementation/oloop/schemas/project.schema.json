@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://lagebericht.local/schema/project.schema.json",
+  "$id": "https://oloop.local/schema/project.schema.json",
   "title": "Project",
   "description": "Frontmatter-Schema für project.md. Maßgeblich bei Widerspruch zu SPEC.md.",
   "type": "object",

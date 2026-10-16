@@ -1,4 +1,4 @@
-# HANDOVER — Lagebericht
+# HANDOVER — oloop (früher „Lagebericht")
 
 **Stand:** 2026-10-16, v0.1.0 getaggt und gepusht (`greebo72/md_todo`, `origin/main`). SPEC-Entwurf
 weiterhin formal nicht freigegeben, aber AP1, AP2'' und AP4'' sind umgesetzt und getestet
@@ -10,12 +10,12 @@ eingerichtet (siehe „Einrichtung"). Noch kein einziges echtes Projekt im Daten
 1. `SPEC/SPEC.md` — fang bei **„Verworfene Vorstufen"** an: vier Architektur-Pivots, kurz
    zusammengefasst. Danach Zweck, Nicht-Ziele, ADR „Dateibasierte Persistenz, kein Service",
    Abschnitt „Dateiformat".
-2. `Implementation/lagebericht/schemas/{project,task}.schema.json` — maßgeblich für die
+2. `Implementation/oloop/schemas/{project,task}.schema.json` — maßgeblich für die
    Frontmatter-Struktur (liegen im Paket, damit die installierte Wheel validieren kann).
 3. `SPEC/api-contract.yaml` — **überholt** (HTTP/H2-Architektur). Nur noch historischer Beleg.
 4. `PLAN.md` — AP1, AP2'', AP4'' erledigt. Offen: **AP4d (MCP-Wrapper, optional, zurückgestellt)**
    und **AP6 (Phase 2 Desktop-App, eigene Freigabe)**. Durchgestrichene APs sind verworfen.
-5. `Implementation/` — `lagebericht/store.py` (Store), `lagebericht/cli.py` (CLI), `tests/`.
+5. `Implementation/` — `oloop/store.py` (Store), `oloop/cli.py` (CLI), `tests/`.
 
 ## Implementierungsstand
 
@@ -25,7 +25,7 @@ eingerichtet (siehe „Einrichtung"). Noch kein einziges echtes Projekt im Daten
   Atomares Schreiben, Backup `<projekt>/.backup/<datei>.bak` (eine Generation), Validierung gegen
   die Schemas beim Lesen und Schreiben. Kein Delete.
 - **Task-Felder** zusätzlich zur ursprünglichen Spec: `createdBy`, `updatedBy` (Pflicht, Quelle:
-  Parameter, sonst `$LAGEBERICHT_ACTOR`, sonst OS-Benutzer) und `labels` (Liste eindeutiger Strings,
+  Parameter, sonst `$OLOOP_ACTOR`, sonst OS-Benutzer) und `labels` (Liste eindeutiger Strings,
   Pflicht, leer erlaubt).
 - **CLI**: `project add/list`, `task add/list/show/edit/close/reopen/image`, `comment add`.
   `--json` auf `project list`, `task list`, `task show`. `task image <id> <datei>` setzt das
@@ -36,17 +36,25 @@ eingerichtet (siehe „Einrichtung"). Noch kein einziges echtes Projekt im Daten
 
 ## Einrichtung (diese Maschine)
 
-- Installiert über `uv tool install <wheel>`, Befehl unter `~/.local/bin/lagebericht`. Nach
+- Installiert über `uv tool install <wheel>`, Befehl unter `~/.local/bin/oloop`. Nach
   Code-Änderungen neu bauen und `uv tool install --force <wheel>`.
 - **Daten-Root:** `/Users/user/Google Drive/Meine Ablage/30_User/99_MD_NOTES` (Google-Drive-Ordner).
-- `~/.zshrc`: `LAGEBERICHT_ROOT`. `~/.claude/settings.json` (Backup: `settings.json.bak`):
-  `env.LAGEBERICHT_ROOT`, `env.LAGEBERICHT_ACTOR=claude`, `permissions.allow` `Bash(lagebericht *)`.
-- `~/.claude/CLAUDE.md` (neu angelegt): Anleitung, wann/wie Claude `lagebericht` nutzt.
+- `~/.zshrc`: `OLOOP_ROOT`. `~/.claude/settings.json` (Backup: `settings.json.bak`):
+  `env.OLOOP_ROOT`, `env.OLOOP_ACTOR=claude`, `permissions.allow` `Bash(oloop *)`.
+- `~/.claude/CLAUDE.md` (neu angelegt): Anleitung, wann/wie Claude `oloop` nutzt.
 - Claude Code liest `env` und `CLAUDE.md` nur beim Start. Nach dem Neustart zuerst
-  `lagebericht project add <name>` und einen Test-Task anlegen, um den Ablauf mit echtem Root zu
+  `oloop project add <name>` und einen Test-Task anlegen, um den Ablauf mit echtem Root zu
   prüfen (wurde bisher nur gegen Temp-Verzeichnisse getestet).
 
 ## Entscheidungen dieser Session
+
+- **Umbenennung Lagebericht → oloop** (Kurzform von „open loops"; PyPI, Homebrew und GitHub frei
+  geprüft). Paket, Befehl und Env-Variablen heißen `oloop` / `OLOOP_ROOT` / `OLOOP_ACTOR`; die alten
+  `LAGEBERICHT_*` gelten als Fallback. Repo-Ordner und GitHub-Repo (`md_todo`) sind unverändert.
+  Das Tracker-Projekt `lagebericht` im Daten-Root behält seinen Namen (Zuordnung läuft über
+  `referencePath`).
+- Projekt-Frontmatter: optionale Felder `referencePath`/`referenceHost`; `oloop project find`
+  ordnet ein Verzeichnis einem Projekt zu (längster Pfad, passender Host).
 
 - MCP-Wrapper vorerst nicht nötig: Claude Code ruft das CLI direkt per Bash auf (`--json`). MCP nur
   sinnvoll, falls Claude Desktop o. Ä. ohne Shell angebunden werden soll.
