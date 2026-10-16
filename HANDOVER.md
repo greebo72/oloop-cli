@@ -1,6 +1,6 @@
 # HANDOVER — oloop (formerly "Lagebericht")
 
-**As of:** 2026-10-16, v0.1.0 tagged and pushed (`greebo72/oloop`, `origin/main`). The SPEC draft is still not formally approved, but AP1, AP2'' and AP4'' are implemented and tested (21 tests). The CLI is installed globally via `uv tool install` and set up for Claude Code (see "Setup"). The project was renamed from "Lagebericht" to "oloop", and all documents are now in English.
+**As of:** 2026-10-16, v0.1.0 tagged and pushed (`greebo72/oloop`, `origin/main`). The SPEC is approved (2026-10-16). AP1, AP2'' and AP4'' are implemented and tested (21 tests). The CLI is installed globally via `uv tool install` and set up for Claude Code (see "Setup"). The project was renamed from "Lagebericht" to "oloop", and all documents are now in English.
 
 ## Reading order
 
@@ -48,6 +48,6 @@
 
 ## Next steps
 
-1. Use `oloop` for a while in real work, then decide whether AP4d (MCP) is needed at all.
+1. Use `oloop` for a while in real work. AP4d (MCP) is not needed for now.
 2. AP6 (desktop app): own spec chapter, toolkit choice (Tauri/Wails/native instead of Electron), a "silent since" view based on `updatedAt`. Only after real use and its own approval.
-3. Small: set the SPEC status to "approved" if wanted. Code comments and docstrings are still German.
+3. Code comments and docstrings are still German.

@@ -26,7 +26,7 @@ The order is dependency order, not necessarily chronological.
 - [x] **AP4'' — CLI commands**
   `project add/list/edit/find`, `task add/list/show/edit/close/reopen/image`, `comment add`. Functionally identical to the former HTTP endpoints (SPEC "File format" / the discarded `api-contract.yaml` as reference for the filter parameters: project, type, status, stale days). `--json` on read commands. Directly against AP2'', no network layer. Depends on: AP2''.
 
-- [ ] **AP4d — MCP wrapper** *(optional, can run in parallel or later)*
+- [ ] **AP4d — MCP wrapper** *(not needed for now, user decision 2026-10-16)*
   Thin layer importing the same Python module as the CLI (AP2''). Depends on: AP2''.
 
 - [ ] **AP6 — Phase 2: desktop app** *(separate spec chapter, own approval)*

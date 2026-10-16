@@ -1,6 +1,6 @@
 # SPEC — oloop, formerly "Lagebericht" (local cross-project tracker)
 
-**Status:** Draft (2026-10-16), not yet approved
+**Status:** Approved (2026-10-16)
 
 **Revision:** 2026-10-16 — initial draft, after technical grounding (JVM/H2/OneDrive measured) and a user question (multi-device).
 **Revision:** 2026-10-16 — architecture switch (user request): central local service instead of direct DB access from every client. Service language decided: Java/Spring Boot.
@@ -11,6 +11,7 @@
 **Revision:** 2026-10-16 — **Architecture consolidation (4th pivot).** Storage moved from H2 to Markdown files with YAML frontmatter. The Java/Spring Boot service is dropped entirely: its only compelling reason (H2 speaks JDBC natively, no driver bridge risk) disappears with the storage change, since text files need no driver in any language. Phase 2 confirmed as a **desktop app** instead of a browser UI, so it needs no HTTP service either. The project is now pure Python with no JVM dependency. See "Discarded predecessors" below for a summary of all four pivots. `SPEC/api-contract.yaml` stays as historical evidence (its header marks it obsolete), replaced by `Implementation/oloop/schemas/*.schema.json`.
 **Revision:** 2026-10-16 — task fields `createdBy`, `updatedBy`, `labels` added (user request).
 **Revision:** 2026-10-16 — project fields `referencePath`, `referenceHost` added (optional), plus `project find`. Project renamed from "Lagebericht" to "oloop"; all documents translated to English.
+**Revision:** 2026-10-16 — spec approved by the user. MCP wrapper not needed for now.
 
 ## Discarded predecessors
 
@@ -123,6 +124,6 @@ No known approval blockers. Remaining, to be clarified before the respective wor
 
 - **Concrete data root path.** The spec only fixes that it is configurable (CLI config/ENV, no hardcoding); the actual value comes from the user before the first run.
 - CLI framework (Python, `click` vs. `argparse`), an implementation detail.
-- MCP wrapper: imports the same Python module and can be built in parallel to the CLI or later.
+- MCP wrapper: not needed for now (user decision). It would import the same Python module and can be added later if a client without a shell needs it.
 - Phase 2 toolkit (see above), own chapter, not part of this approval.
 - Git remote for this project (local only vs. backup remote). Not asked; `git init` is enough for the commit references required by CLAUDE.md, a remote can follow later.
