@@ -101,7 +101,7 @@ def slugify(name: str) -> str:
     s = s.encode("ascii", "ignore").decode("ascii")
     s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
     if not s:
-        raise ValidationError(f"Projektname ergibt keinen gültigen Slug: {name!r}")
+        raise ValidationError(f"Project name yields no valid slug: {name!r}")
     return s
 
 
@@ -113,10 +113,10 @@ def _clean_labels(labels: list[str] | None) -> list[str]:
 def _parse(text: str, where: str) -> tuple[dict, str]:
     m = _FRONTMATTER_RE.match(text)
     if not m:
-        raise ValidationError(f"{where}: kein Frontmatter")
+        raise ValidationError(f"{where}: no frontmatter")
     data = yaml.load(m.group(1), Loader=_StringTimestampLoader)
     if not isinstance(data, dict):
-        raise ValidationError(f"{where}: Frontmatter ist kein Mapping")
+        raise ValidationError(f"{where}: frontmatter is not a mapping")
     return data, m.group(2).strip("\n")
 
 
@@ -220,7 +220,7 @@ class Store:
         self.actor = actor or _env(ENV_ACTOR) or getpass.getuser()
         root = root or _env(ENV_ROOT)
         if not root:
-            raise StoreError(f"Daten-Root nicht gesetzt (Parameter oder ${ENV_ROOT})")
+            raise StoreError(f"Data root not set (parameter or ${ENV_ROOT})")
         self.root = Path(root).expanduser()
 
     # ---- Projekte -------------------------------------------------------
@@ -233,7 +233,7 @@ class Store:
         try:
             data, _ = _parse(path.read_text(encoding="utf-8"), str(path))
         except FileNotFoundError:
-            raise NotFound(f"Projekt-Ordner ohne project.md: {slug}") from None
+            raise NotFound(f"Project folder without project.md: {slug}") from None
         _validate(_project_validator, data, str(path))
         return Project(slug=slug, **data)
 
@@ -252,7 +252,7 @@ class Store:
         for p in self.list_projects():
             if p.name.casefold() == key:
                 return p
-        raise NotFound(f"Projekt nicht gefunden: {name!r}")
+        raise NotFound(f"Project not found: {name!r}")
 
     def find_project_by_path(
         self, path: str | os.PathLike[str], host: str | None = None
@@ -269,7 +269,7 @@ class Store:
                 if best is None or len(ref.parts) > best[0]:
                     best = (len(ref.parts), p)
         if best is None:
-            raise NotFound(f"Kein Projekt für Pfad {str(target)!r} auf {host!r}")
+            raise NotFound(f"No project for path {str(target)!r} on {host!r}")
         return best[1]
 
     def add_project(
@@ -281,10 +281,10 @@ class Store:
         name = name.strip()
         slug = slugify(name)
         if any(p.name.casefold() == name.casefold() for p in self.list_projects()):
-            raise Conflict(f"Projekt existiert bereits: {name!r}")
+            raise Conflict(f"Project already exists: {name!r}")
         pdir = self._project_dir(slug)
         if pdir.exists():
-            raise Conflict(f"Slug-Kollision: Ordner {slug!r} existiert bereits")
+            raise Conflict(f"Slug collision: folder {slug!r} already exists")
         project = Project(id=str(uuid.uuid4()), name=name, createdAt=now_utc(), slug=slug)
         self._apply_reference(project, reference_path, reference_host)
         data = project.frontmatter()
@@ -328,9 +328,9 @@ class Store:
         data, body = _parse(path.read_text(encoding="utf-8"), str(path))
         _validate(_task_validator, data, str(path))
         if data["id"] != path.stem:
-            raise ValidationError(f"{path}: id {data['id']} != Dateiname")
+            raise ValidationError(f"{path}: id {data['id']} != file name")
         if data["projectId"] != project.id:
-            raise ValidationError(f"{path}: projectId passt nicht zu {project.name!r}")
+            raise ValidationError(f"{path}: projectId does not match {project.name!r}")
         comments = [Comment(**c) for c in data.pop("comments", [])]
         return Task(description=body, comments=comments, projectName=project.name, **data)
 
@@ -348,22 +348,22 @@ class Store:
             path = self._task_path(project, task_id)
             if path.exists():
                 return project, self._read_task(path, project)
-        raise NotFound(f"Task nicht gefunden: {task_id}")
+        raise NotFound(f"Task not found: {task_id}")
 
     def resolve_task_id(self, prefix: str) -> str:
         """Eindeutiges ID-Präfix (min. 4 Zeichen) -> volle UUID."""
         prefix = prefix.strip().lower()
         if len(prefix) < 4:
-            raise ValidationError("Task-ID-Präfix: mindestens 4 Zeichen")
+            raise ValidationError("Task ID prefix: at least 4 characters")
         hits = [
             p.stem
             for project in self.list_projects()
             for p in (self._project_dir(project.slug) / "tasks").glob(f"{prefix}*.md")
         ]
         if not hits:
-            raise NotFound(f"Task nicht gefunden: {prefix}")
+            raise NotFound(f"Task not found: {prefix}")
         if len(hits) > 1:
-            raise Conflict(f"Task-ID-Präfix mehrdeutig: {prefix} ({len(hits)} Treffer)")
+            raise Conflict(f"Task ID prefix ambiguous: {prefix} ({len(hits)} matches)")
         return hits[0]
 
     def get_task(self, task_id: str) -> Task:
@@ -443,7 +443,7 @@ class Store:
         labels: list[str] | None = None,
     ) -> Task:
         if title is None and description is None and labels is None:
-            raise ValidationError("edit ohne Änderung (title/description/labels)")
+            raise ValidationError("edit without change (title/description/labels)")
 
         def mutate(t: Task) -> None:
             if title is not None:
@@ -464,7 +464,7 @@ class Store:
     def add_comment(self, task_id: str, body: str) -> Task:
         body = body.strip()
         if not body:
-            raise ValidationError("Kommentar leer")
+            raise ValidationError("Comment is empty")
         return self._update(
             task_id, lambda t: t.comments.append(Comment(body=body, createdAt=now_utc()))
         )
@@ -472,7 +472,7 @@ class Store:
     def set_image(self, task_id: str, source: str | os.PathLike[str]) -> Task:
         src = Path(source)
         if not src.is_file():
-            raise NotFound(f"Bilddatei nicht gefunden: {src}")
+            raise NotFound(f"Image file not found: {src}")
         project, _ = self._find_task(task_id)
         rel = f"images/{task_id}{src.suffix.lower()}"
         dest = self._project_dir(project.slug) / rel
@@ -489,7 +489,7 @@ class Store:
         Description). Liefert (Task, Pfad relativ zur Task-Datei, z. B. `../images/...`)."""
         src = Path(source)
         if not src.is_file():
-            raise NotFound(f"Bilddatei nicht gefunden: {src}")
+            raise NotFound(f"Image file not found: {src}")
         project, _ = self._find_task(task_id)
         images = self._project_dir(project.slug) / "images"
         images.mkdir(exist_ok=True)

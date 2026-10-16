@@ -34,7 +34,7 @@ def test_full_flow(run):
     assert run("task", "close", tid[:8])[0] == 0
 
     code, out, _ = run("task", "list", "-s", "closed")
-    assert "Behoben" in out and "Neu" in out and "[z]" in out
+    assert "Fixed" in out and "Neu" in out and "[z]" in out
     assert run("task", "list", "-s", "open")[1] == ""
     assert run("task", "list", "-l", "a")[1] == ""
     assert run("task", "list", "--stale-days", "1")[1] == ""
@@ -51,7 +51,7 @@ def test_full_flow(run):
 
 def test_errors(run):
     code, _, err = run("task", "list", "-p", "nope")
-    assert code == 1 and err.startswith("Fehler:")
+    assert code == 1 and err.startswith("Error:")
     run("project", "add", "A")
     assert run("project", "add", "a")[0] == 1
     assert run("task", "close", "ffff")[0] == 1

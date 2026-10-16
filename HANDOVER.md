@@ -15,7 +15,7 @@
 - **Store** (`store.py`): projects, tasks, comments, main image (`set_image`), extra images (`add_attachment`), edit (title/description/labels), close/reopen, filters (`project`, `type`, `status`, `label`, `stale_days`), task ID prefix resolution (`resolve_task_id`, at least 4 characters). Atomic writes, backup `<project>/.backup/<file>.bak` (one generation), validation against the schemas on read and write. No delete.
 - **Project fields** beyond the original spec: optional `referencePath` and `referenceHost`. `find_project_by_path` maps a directory to a project (longest matching path wins, host must match).
 - **Task fields** beyond the original spec: `createdBy`, `updatedBy` (required; source: parameter, else `$OLOOP_ACTOR`, else OS user) and `labels` (list of unique strings, required, may be empty).
-- **CLI:** `project add/edit/list/find`, `task add/list/show/edit/close/reopen/image`, `comment add`. `--json` on `project list`, `project find`, `task list`, `task show`. `task image <id> <file>` sets the main image; `--embed` stores an extra image as `images/<task-id>-<n>.<ext>` and prints the Markdown link (`../images/...`, relative to the task file) for the description.
+- **CLI:** all output, help and error messages are English. `project add/edit/list/find`, `task add/list/show/edit/close/reopen/image`, `comment add`. `--json` on `project list`, `project find`, `task list`, `task show`. `task image <id> <file>` sets the main image; `--embed` stores an extra image as `images/<task-id>-<n>.<ext>` and prints the Markdown link (`../images/...`, relative to the task file) for the description.
 - **Release:** `uv build` in `Implementation/` produces `dist/` (not in git). Checked: the wheel installs in a fresh venv outside the workspace and the CLI runs.
 
 ## Setup (this machine)
@@ -50,4 +50,4 @@
 
 1. Use `oloop` for a while in real work, then decide whether AP4d (MCP) is needed at all.
 2. AP6 (desktop app): own spec chapter, toolkit choice (Tauri/Wails/native instead of Electron), a "silent since" view based on `updatedAt`. Only after real use and its own approval.
-3. Small: set the SPEC status to "approved" if wanted. Decide whether the CLI messages and help texts (currently German) should be translated too.
+3. Small: set the SPEC status to "approved" if wanted. Code comments and docstrings are still German.

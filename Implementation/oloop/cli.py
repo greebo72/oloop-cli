@@ -1,4 +1,4 @@
-"""CLI (AP4''): dünne Schicht über oloop.store."""
+"""CLI (AP4''): thin layer over oloop.store."""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ from datetime import datetime, timezone
 
 from .store import STATUSES, TASK_TYPES, Store, StoreError, parse_ts
 
-# Darstellungslabel je Typ für status=closed (SPEC „Ein status-Feld")
+# Display label per type for status=closed (SPEC "One status field")
 CLOSED_LABEL = {
-    "todo": "Erledigt",
-    "question": "Geklärt",
-    "decision": "Entschieden",
-    "feature": "Umgesetzt",
-    "bug": "Behoben",
+    "todo": "Done",
+    "question": "Answered",
+    "decision": "Decided",
+    "feature": "Implemented",
+    "bug": "Fixed",
 }
 
 
@@ -25,11 +25,11 @@ def _dump(obj) -> None:
 
 def _age(ts: str) -> str:
     days = (datetime.now(timezone.utc) - parse_ts(ts)).days
-    return "heute" if days < 1 else f"{days}d"
+    return "today" if days < 1 else f"{days}d"
 
 
 def _line(t) -> str:
-    status = CLOSED_LABEL[t.type] if t.status == "closed" else "offen"
+    status = CLOSED_LABEL[t.type] if t.status == "closed" else "open"
     labels = f" [{', '.join(t.labels)}]" if t.labels else ""
     return (
         f"{t.id[:8]}  {t.type:<8} {status:<11} {t.projectName}  "
@@ -43,12 +43,12 @@ def _task_id(store: Store, args) -> str:
 
 def cmd_project_add(store, args):
     p = store.add_project(args.name, args.reference_path, args.host)
-    print(f"Projekt angelegt: {p.name} ({p.id})")
+    print(f"Project created: {p.name} ({p.id})")
 
 
 def cmd_project_edit(store, args):
     p = store.edit_project(args.name, args.reference_path, args.host)
-    print(f"Projekt geändert: {p.name}")
+    print(f"Project updated: {p.name}")
 
 
 def cmd_project_find(store, args):
@@ -69,7 +69,7 @@ def cmd_project_list(store, args):
 
 def cmd_task_add(store, args):
     t = store.add_task(args.project, args.type, args.title, args.description, args.label)
-    print(f"Task angelegt: {t.id}")
+    print(f"Task created: {t.id}")
 
 
 def cmd_task_list(store, args):
@@ -88,9 +88,9 @@ def cmd_task_show(store, args):
         return _dump(t.to_dict())
     print(_line(t))
     print(f"id: {t.id}")
-    print(f"angelegt {t.createdAt} von {t.createdBy}; geändert {t.updatedAt} von {t.updatedBy}")
+    print(f"created {t.createdAt} by {t.createdBy}; updated {t.updatedAt} by {t.updatedBy}")
     if t.imagePath:
-        print(f"Bild: {t.imagePath}")
+        print(f"image: {t.imagePath}")
     if t.description:
         print(f"\n{t.description}")
     for c in t.comments:
@@ -100,15 +100,15 @@ def cmd_task_show(store, args):
 def cmd_task_edit(store, args):
     labels = [] if args.clear_labels else args.label
     t = store.edit_task(_task_id(store, args), args.title, args.description, labels)
-    print(f"Task geändert: {t.id}")
+    print(f"Task updated: {t.id}")
 
 
 def cmd_task_close(store, args):
-    print(f"Task geschlossen: {store.close_task(_task_id(store, args)).id}")
+    print(f"Task closed: {store.close_task(_task_id(store, args)).id}")
 
 
 def cmd_task_reopen(store, args):
-    print(f"Task wieder geöffnet: {store.reopen_task(_task_id(store, args)).id}")
+    print(f"Task reopened: {store.reopen_task(_task_id(store, args)).id}")
 
 
 def cmd_task_image(store, args):
@@ -118,18 +118,18 @@ def cmd_task_image(store, args):
         print(f"![{args.file.rsplit('/', 1)[-1]}]({link})")
     else:
         t = store.set_image(tid, args.file)
-        print(f"Hauptbild gesetzt: {t.imagePath}")
+        print(f"Main image set: {t.imagePath}")
 
 
 def cmd_comment_add(store, args):
     t = store.add_comment(_task_id(store, args), args.body)
-    print(f"Kommentar hinzugefügt: {t.id}")
+    print(f"Comment added: {t.id}")
 
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="oloop")
-    ap.add_argument("--root", help="Daten-Root (sonst $OLOOP_ROOT)")
-    ap.add_argument("--actor", help="Akteur für createdBy/updatedBy (sonst $OLOOP_ACTOR)")
+    ap.add_argument("--root", help="data root (default: $OLOOP_ROOT)")
+    ap.add_argument("--actor", help="actor for createdBy/updatedBy (default: $OLOOP_ACTOR)")
     sub = ap.add_subparsers(dest="group", required=True)
 
     def leaf(parent, name, fn, json_flag=False):
@@ -143,12 +143,12 @@ def build_parser() -> argparse.ArgumentParser:
     for cmd, fn in (("add", cmd_project_add), ("edit", cmd_project_edit)):
         p = leaf(proj, cmd, fn)
         p.add_argument("name")
-        p.add_argument("--reference-path", help="Arbeitsverzeichnis; leer entfernt")
-        p.add_argument("--host", help="Rechnername; Default bei Pfad: dieser Rechner")
+        p.add_argument("--reference-path", help="working directory; empty string removes it")
+        p.add_argument("--host", help="machine name; with a path, defaults to this machine")
     leaf(proj, "list", cmd_project_list, True)
     p = leaf(proj, "find", cmd_project_find, True)
-    p.add_argument("--path", default=".", help="Default: aktuelles Verzeichnis")
-    p.add_argument("--host", help="Default: dieser Rechner")
+    p.add_argument("--path", default=".", help="default: current directory")
+    p.add_argument("--host", help="default: this machine")
 
     task = sub.add_parser("task").add_subparsers(dest="cmd", required=True)
     p = leaf(task, "add", cmd_task_add)
@@ -162,7 +162,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--project", "-p")
     p.add_argument("--type", "-t", choices=TASK_TYPES)
     p.add_argument("--status", "-s", choices=STATUSES)
-    p.add_argument("--stale-days", type=float, help="nur Tasks ohne Änderung seit N Tagen")
+    p.add_argument("--stale-days", type=float, help="only tasks unchanged for N days")
     p.add_argument("--label", "-l")
 
     leaf(task, "show", cmd_task_show, True).add_argument("id")
@@ -172,14 +172,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--title")
     p.add_argument("--description", "-d")
     p.add_argument("--label", "-l", action="append", default=None,
-                   help="ersetzt alle Labels (mehrfach angebbar)")
+                   help="replaces all labels (repeatable)")
     p.add_argument("--clear-labels", action="store_true")
 
     p = leaf(task, "image", cmd_task_image)
     p.add_argument("id")
     p.add_argument("file")
     p.add_argument("--embed", action="store_true",
-                   help="als zusätzliches Bild ablegen, Markdown-Link für die Description ausgeben")
+                   help="store as an extra image and print a Markdown link for the description")
 
     leaf(task, "close", cmd_task_close).add_argument("id")
     leaf(task, "reopen", cmd_task_reopen).add_argument("id")
@@ -196,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         args.fn(Store(args.root, args.actor), args)
     except StoreError as e:
-        print(f"Fehler: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         return 1
     return 0
 
