@@ -62,4 +62,4 @@ Task types are `todo`, `question`, `decision`, `feature`, and `bug`. Comments, l
 
 oloop is designed for a single user across their devices, without heavy database locking. Tasks are closed rather than deleted. 
 
-See [oloop-spec](https://github.com/greebo72/oloop-spec) for specifications and [HANDOVER.md](HANDOVER.md) for current implementation status.
+See [oloop-spec](https://github.com/greebo72/oloop-spec) for specifications.
