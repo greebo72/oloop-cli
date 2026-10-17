@@ -33,7 +33,7 @@ oloop is built as an ecosystem with native clients across platforms:
 - **Windows:** In active development
 - **CLI (`oloop-cli`):** Available (macOS, Linux, Windows)
 
-See [oloop-spec](https://github.com/greebo72/oloop-spec) for architectural specifications and schema definitions.
+See [oloop-spec](https://github.com/greebo72/oloop-spec) for architectural specifications (the spec currently is held as a private project, might change in the future) and schema definitions.
 
 ## Installation
 
