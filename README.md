@@ -19,9 +19,11 @@ The data lives as Markdown files with YAML frontmatter in a plain folder. You an
 Working in IT presales involves juggling dozens of parallel customer inquiries, RFPs, and ongoing projects simultaneously. Modern LLM tools (specifically Claude) offer tremendous leverage when analyzing, drafting, and processing requests. However, what was missing was a unified, cross-project task tracking system that works equally well for autonomous AI agents and humans alike.
 
 Key design principles:
+
 - **Zero Server Setup:** Completely serverless. No server installation, no daemon, no database maintenance.
+- **Fast and Lighweight** applications that do not require much system ressources
 - **Cross-Platform & Portable:** Consistent behavior across developer workstations and mobile devices.
-- **Seamless Cloud Sync:** Data is stored in plain files, making directory synchronization straightforward. Currently used with **Google Drive** automatic synchronization, running smoothly across Claude on macOS, Windows, and Android. Tested and confirmed to work just as reliably with self-hosted **Nextcloud** sync.
+- **Seamless Cloud Sync:** Data is stored in plain files, making directory synchronization straightforward. Currently used with **Google Drive** automatic synchronization, running smoothly across Claude on macOS, Windows, and Android. Tested and confirmed to work just as reliably with self-hosted **Nextcloud** sync. Using on a netwrok drive or synchronizing changes within a Git project shoudl also be a valuable option.
 - **Dual Audience:** Clean terminal UI and human-friendly workflows, coupled with structured JSON output (`--json`) for AI agents.
 
 ## Native Apps & Ecosystem
@@ -60,6 +62,6 @@ Task types are `todo`, `question`, `decision`, `feature`, and `bug`. Comments, l
 
 ## Architecture & Constraints
 
-oloop is designed for a single user across their devices, without heavy database locking. Tasks are closed rather than deleted. 
+Currently oloop is designed for a single user across their devices, without heavy database locking. Tasks are closed rather than deleted. 
 
 See [oloop-spec](https://github.com/greebo72/oloop-spec) for specifications.
