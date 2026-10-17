@@ -18,6 +18,8 @@ The data lives as Markdown files with YAML frontmatter in a plain folder. You an
 
 Working in IT presales involves juggling dozens of parallel customer inquiries, RFPs, and ongoing projects simultaneously. Modern LLM tools (specifically Claude) offer tremendous leverage when analyzing, drafting, and processing requests. However, what was missing was a unified, cross-project task tracking system that works equally well for autonomous AI agents and humans alike.
 
+**I have created this tool to support my own daily workflow and decided to share it here if you think it is worth using feel free to pull and try it out.**
+
 Key design principles:
 
 - **Zero Server Setup:** Completely serverless. No server installation, no daemon, no database maintenance.
