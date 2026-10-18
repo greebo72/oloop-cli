@@ -32,9 +32,9 @@ Key design principles:
 
 oloop is built as an ecosystem with native clients across platforms:
 
-- **Android:** Available (Native app)
-- **iOS / iPadOS / macOS:** In active development
-- **Windows:** In active development
+- **Android:** Available (native app, runs on device)
+- **iOS / iPadOS / macOS:** Not started (repo holds the build brief only)
+- **Windows:** Planned (WPF, provisional)
 - **CLI (`oloop-cli`):** Available (macOS, Linux, Windows)
 
 See [oloop-spec](https://github.com/greebo72/oloop-spec) for architectural specifications and schema definitions.
