@@ -37,7 +37,7 @@ oloop is built as an ecosystem with native clients across platforms:
 - **Windows:** In active development
 - **CLI (`oloop-cli`):** Available (macOS, Linux, Windows)
 
-See [oloop-spec](https://github.com/greebo72/oloop-spec) for architectural specifications (the spec currently is held as a private project, might change in the future) and schema definitions.
+See [oloop-spec](https://github.com/greebo72/oloop-spec) for architectural specifications and schema definitions.
 
 ## Installation
 
@@ -48,7 +48,7 @@ uv tool install "git+https://github.com/greebo72/oloop-cli.git"
 export OLOOP_ROOT=~/oloop-data          # Windows: setx OLOOP_ROOT "C:\path\to\oloop-data"
 ```
 
-The repo is private, so the machine needs GitHub access (SSH key or `gh auth login`). To work on the code, clone it with `git clone --recurse-submodules` and run `uv run --extra dev pytest`.
+To work on the code, clone it with `git clone --recurse-submodules` and run `uv run --extra dev pytest`.
 
 ## Usage
 
@@ -67,3 +67,7 @@ Task types are `todo`, `question`, `decision`, `feature`, and `bug`. Comments, l
 Currently oloop is designed for a single user across their devices, without heavy database locking. Tasks are closed rather than deleted. 
 
 See [oloop-spec](https://github.com/greebo72/oloop-spec) for specifications.
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE).
