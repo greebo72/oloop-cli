@@ -44,7 +44,7 @@ See [oloop-spec](https://github.com/greebo72/oloop-spec) for architectural speci
 You need Python 3.11 or newer and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv tool install "git+ssh://git@github.com/greebo72/oloop-cli.git"
+uv tool install "git+https://github.com/greebo72/oloop-cli.git"
 export OLOOP_ROOT=~/oloop-data          # Windows: setx OLOOP_ROOT "C:\path\to\oloop-data"
 ```
 
