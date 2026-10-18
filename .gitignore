@@ -1,9 +1,6 @@
 .venv/
 __pycache__/
 *.pyc
-*.mv.db
-*.trace.db
-*.jar
 *.egg-info/
 .pytest_cache/
 dist/
