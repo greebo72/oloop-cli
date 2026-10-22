@@ -481,6 +481,10 @@ class Store:
     def get_task(self, task_id: str) -> Task:
         return self._find_task(task_id)[1]
 
+    def locate_task(self, task_id: str) -> tuple[Project, Task]:
+        """Der Task samt seinem Projekt (volle ID)."""
+        return self._find_task(task_id)
+
     def add_task(
         self,
         project_name: str,

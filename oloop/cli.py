@@ -6,7 +6,9 @@ import argparse
 import json
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
+from .export import export_project, export_task
 from .store import STATUSES, TASK_TYPES, UNSET, Store, StoreError, parse_ts
 
 # Display label per type for status=closed (SPEC "One status field")
@@ -130,6 +132,28 @@ def cmd_task_image(store, args):
         print(f"Main image set: {t.imagePath}")
 
 
+def _write_export(text: str, output: str | None) -> None:
+    """The page goes to the file, or to the standard output as UTF-8 when there is no file."""
+    if output is None:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.write(text)
+        return
+    try:
+        Path(output).write_text(text, encoding="utf-8", newline="\n")
+    except OSError as e:
+        raise StoreError(f"Cannot write {output}: {e}") from None
+    print(f"Exported: {output}")
+
+
+def cmd_export_task(store, args):
+    _write_export(export_task(store, _task_id(store, args)), args.output)
+
+
+def cmd_export_project(store, args):
+    _write_export(export_project(store, args.name, include_closed=args.include_closed), args.output)
+
+
 def cmd_comment_add(store, args):
     t = store.add_comment(_task_id(store, args), args.body)
     print(f"Comment added: {t.id}")
@@ -206,6 +230,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     leaf(task, "close", cmd_task_close).add_argument("id")
     leaf(task, "reopen", cmd_task_reopen).add_argument("id")
+
+    exp = sub.add_parser("export", help="export a task or a project as one HTML file").add_subparsers(
+        dest="cmd", required=True
+    )
+    p = leaf(exp, "task", cmd_export_task)
+    p.add_argument("id")
+    p.add_argument("--output", "-o", help="file to write (default: standard output)")
+    p = leaf(exp, "project", cmd_export_project)
+    p.add_argument("name")
+    p.add_argument("--output", "-o", help="file to write (default: standard output)")
+    p.add_argument("--include-closed", action="store_true", help="also export the closed tasks")
 
     com = sub.add_parser("comment").add_subparsers(dest="cmd", required=True)
     p = leaf(com, "add", cmd_comment_add)

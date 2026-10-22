@@ -3,7 +3,12 @@ name = "oloop"
 version = "0.1.0"
 description = "Lokaler Cross-Projekt-Tracker (Markdown + YAML-Frontmatter)"
 requires-python = ">=3.11"
-dependencies = ["pyyaml", "jsonschema", "rfc3339-validator"]
+dependencies = [
+    "pyyaml",
+    "jsonschema",
+    "rfc3339-validator",
+    "markdown-it-py>=4.2.0",
+]
 
 [project.optional-dependencies]
 dev = ["pytest"]

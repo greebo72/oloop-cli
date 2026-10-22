@@ -61,8 +61,12 @@ oloop task edit <id> --due 2026-12-01      # or --clear-due
 oloop task list --overdue                  # also --due-before DATE, --has-due, --sort due
 oloop task list -l bug -l ui              # repeatable, any of them, ignoring case
 oloop task close <id>
+oloop export project myproject -o myproject.html   # name, task list, every task as a card, with comments
+oloop export task <id> -o task.html                # one task; add --include-closed to a project export
 oloop project find          # project for the current directory
 ```
+
+The HTML export is one self-contained file (no network needed) with a print stylesheet, so *Print to PDF* in a browser gives a PDF. Markdown is rendered, raw HTML in it is shown as text, images from the project folder are embedded.
 
 Task types are `todo`, `question`, `decision`, `feature`, and `bug`. Comments, labels, and images attach directly to a task. A due date is a plain calendar day (`YYYY-MM-DD`, no time zone); closed tasks keep it but are never overdue. `list` and `show` support `--json` for machine-readable output. Run `oloop --help` to explore all commands.
 
