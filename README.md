@@ -59,6 +59,7 @@ oloop task list -s open --stale-days 14
 oloop task add -p myproject -t todo "Renew cert" --due 2026-11-01
 oloop task edit <id> --due 2026-12-01      # or --clear-due
 oloop task list --overdue                  # also --due-before DATE, --has-due, --sort due
+oloop task list -l bug -l ui              # repeatable, any of them, ignoring case
 oloop task close <id>
 oloop project find          # project for the current directory
 ```

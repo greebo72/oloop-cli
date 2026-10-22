@@ -518,7 +518,7 @@ class Store:
         type: str | None = None,
         status: str | None = None,
         stale_days: float | None = None,
-        label: str | None = None,
+        label: str | list[str] | tuple[str, ...] | None = None,
         now: datetime | None = None,
         due_before: str | None = None,
         overdue: bool = False,
@@ -526,11 +526,15 @@ class Store:
         sort: str = "updated",
         on: date | None = None,
     ) -> list[Task]:
-        """`due_before`: Fälligkeit vor diesem Datum. `overdue`: offen und vor `on` (Standard
+        """`label`: ein Label oder mehrere; ein Task passt, wenn er mindestens eines trägt (Oder).
+        Der Vergleich ignoriert die Groß-/Kleinschreibung (casefold, ohne Locale), die Labels
+        selbst bleiben wie gespeichert.
+        `due_before`: Fälligkeit vor diesem Datum. `overdue`: offen und vor `on` (Standard
         heute) fällig. `has_due`: nur Tasks mit Datum. `sort`: "updated" (neueste zuerst) oder
         "due" (frühestes Datum zuerst, ohne Datum am Ende)."""
         if due_before is not None:
             check_due_date(due_before)
+        wanted = {l.casefold() for l in ([label] if isinstance(label, str) else label or [])}
         if sort not in ("updated", "due"):
             raise ValidationError(f"Unknown sort order: {sort!r} (updated, due)")
         projects = [self.get_project(project_name)] if project_name else self.list_projects()
@@ -548,7 +552,7 @@ class Store:
                     continue
                 if status and t.status != status:
                     continue
-                if label and label not in t.labels:
+                if wanted and not wanted & {l.casefold() for l in t.labels}:
                     continue
                 if cutoff and parse_ts(t.updatedAt) > cutoff:
                     continue

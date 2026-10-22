@@ -173,7 +173,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--type", "-t", choices=TASK_TYPES)
     p.add_argument("--status", "-s", choices=STATUSES)
     p.add_argument("--stale-days", type=float, help="only tasks unchanged for N days")
-    p.add_argument("--label", "-l")
+    p.add_argument("--label", "-l", action="append",
+                   help="repeatable; a task matches if it has at least one of them, "
+                        "ignoring case")
     p.add_argument("--due-before", metavar="YYYY-MM-DD",
                    help="only tasks with a due date before this day")
     p.add_argument("--overdue", action="store_true",
