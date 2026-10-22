@@ -22,7 +22,7 @@ import tempfile
 import unicodedata
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +43,9 @@ STATUSES = ("open", "closed")
 
 _SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"
 _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n?(.*)\Z", re.DOTALL)
+
+
+UNSET: Any = object()  # "nicht angegeben", im Unterschied zu None ("entfernen")
 
 
 class StoreError(Exception):
@@ -74,6 +77,58 @@ _StringTimestampLoader.yaml_implicit_resolvers = {
 def _validator(name: str) -> Draft202012Validator:
     schema = json.loads((_SCHEMA_DIR / name).read_text(encoding="utf-8"))
     return Draft202012Validator(schema, format_checker=FormatChecker())
+
+
+class _Date(str):
+    """Ein Kalenderdatum `YYYY-MM-DD`. Wird unquotiert geschrieben (`dueDate: 2026-11-01`)."""
+
+
+class _FileDumper(yaml.SafeDumper):
+    pass
+
+
+_FileDumper.add_representer(
+    _Date, lambda dumper, v: dumper.represent_scalar("tag:yaml.org,2002:timestamp", str(v))
+)
+
+_DATE_RE = re.compile(r"\A\d{4}-\d{2}-\d{2}\Z")
+
+_PROJECT_FIELDS = frozenset(
+    {"formatVersion", "id", "name", "createdAt", "referencePath", "referenceHost"}
+)
+_TASK_FIELDS = frozenset(
+    {
+        "formatVersion", "id", "projectId", "type", "title", "status", "imagePath", "dueDate",
+        "labels", "createdAt", "createdBy", "updatedAt", "updatedBy", "comments",
+    }
+)
+_COMMENT_FIELDS = frozenset({"body", "createdAt"})
+
+
+def _split(data: dict, known: frozenset[str]) -> tuple[dict, dict]:
+    """Bekannte und unbekannte Felder trennen; die unbekannten behalten ihre Reihenfolge."""
+    return (
+        {k: v for k, v in data.items() if k in known},
+        {k: v for k, v in data.items() if k not in known},
+    )
+
+
+def check_due_date(value: str) -> str:
+    """Prüft `YYYY-MM-DD` und dass der Tag im Kalender existiert."""
+    try:
+        if not _DATE_RE.match(value):
+            raise ValueError
+        date.fromisoformat(value)
+    except ValueError:
+        raise ValidationError(
+            f"Invalid due date {value!r}: use YYYY-MM-DD with a real calendar day"
+        ) from None
+    return value
+
+
+def today() -> date:
+    """Heute als lokales Kalenderdatum (dueDate hat keine Zeitzone)."""
+    return date.today()
 
 
 _project_validator = _validator("project.schema.json")
@@ -131,8 +186,8 @@ def _parse(text: str, where: str) -> tuple[dict, str]:
 
 
 def _render(data: dict, body: str = "") -> str:
-    head = yaml.safe_dump(
-        data, sort_keys=False, allow_unicode=True, default_flow_style=False
+    head = yaml.dump(
+        data, Dumper=_FileDumper, sort_keys=False, allow_unicode=True, default_flow_style=False
     )
     return f"---\n{head}---\n{body.strip(chr(10))}\n" if body.strip() else f"---\n{head}---\n"
 
@@ -161,6 +216,10 @@ def _write_with_backup(path: Path, text: str, backup_dir: Path) -> None:
 class Comment:
     body: str
     createdAt: str
+    extra: dict[str, Any] = field(default_factory=dict)  # unbekannte Felder, bleiben erhalten
+
+    def frontmatter(self) -> dict[str, Any]:
+        return {"body": self.body, "createdAt": self.createdAt, **self.extra}
 
 
 @dataclass
@@ -172,6 +231,7 @@ class Project:
     referencePath: str | None = None
     referenceHost: str | None = None
     formatVersion: int = FORMAT_VERSION
+    extra: dict[str, Any] = field(default_factory=dict)  # unbekannte Felder, bleiben erhalten
 
     def frontmatter(self) -> dict[str, Any]:
         d: dict[str, Any] = {
@@ -184,7 +244,7 @@ class Project:
             d["referencePath"] = self.referencePath
         if self.referenceHost:
             d["referenceHost"] = self.referenceHost
-        return d
+        return {**d, **self.extra}
 
     to_dict = frontmatter
 
@@ -203,12 +263,22 @@ class Task:
     labels: list[str] = field(default_factory=list)
     description: str = ""
     imagePath: str | None = None
+    dueDate: str | None = None  # YYYY-MM-DD, kein Zeitanteil, keine Zeitzone
     comments: list[Comment] = field(default_factory=list)
     projectName: str = ""
     formatVersion: int = FORMAT_VERSION
+    extra: dict[str, Any] = field(default_factory=dict)  # unbekannte Felder, bleiben erhalten
+
+    def is_overdue(self, on: date | None = None) -> bool:
+        """Offen und fällig vor `on` (Standard: heute). Geschlossene Tasks nie."""
+        return (
+            self.status == "open"
+            and self.dueDate is not None
+            and date.fromisoformat(self.dueDate) < (on or today())
+        )
 
     def frontmatter(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "formatVersion": self.formatVersion,
             "id": self.id,
             "projectId": self.projectId,
@@ -216,16 +286,29 @@ class Task:
             "title": self.title,
             "status": self.status,
             "imagePath": self.imagePath,
-            "labels": list(self.labels),
-            "createdAt": self.createdAt,
-            "createdBy": self.createdBy,
-            "updatedAt": self.updatedAt,
-            "updatedBy": self.updatedBy,
-            "comments": [{"body": c.body, "createdAt": c.createdAt} for c in self.comments],
         }
+        if self.dueDate:  # fehlt statt null, wenn es kein Datum gibt
+            d["dueDate"] = _Date(self.dueDate)
+        d.update(
+            {
+                "labels": list(self.labels),
+                "createdAt": self.createdAt,
+                "createdBy": self.createdBy,
+                "updatedAt": self.updatedAt,
+                "updatedBy": self.updatedBy,
+                "comments": [c.frontmatter() for c in self.comments],
+            }
+        )
+        return {**d, **self.extra}
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, explicit_due: bool = False) -> dict[str, Any]:
+        """Dict mit allen Feldern. `explicit_due`: dueDate auch als null ausgeben (CLI --json);
+        sonst fehlt der Schlüssel ohne Datum, wie in den Conformance-Fixtures."""
         d = self.frontmatter()
+        if "dueDate" in d:
+            d["dueDate"] = str(d["dueDate"])
+        elif explicit_due:
+            d["dueDate"] = None
         d["description"] = self.description
         d["projectName"] = self.projectName
         return d
@@ -254,7 +337,8 @@ class Store:
             raise NotFound(f"Project folder without project.md: {slug}") from None
         _check_format_version(data, str(path))
         _validate(_project_validator, data, str(path))
-        return Project(slug=slug, **data)
+        known, extra = _split(data, _PROJECT_FIELDS)
+        return Project(slug=slug, extra=extra, **known)
 
     def list_projects(self) -> list[Project]:
         if not self.root.is_dir():
@@ -351,8 +435,16 @@ class Store:
             raise ValidationError(f"{path}: id {data['id']} != file name")
         if data["projectId"] != project.id:
             raise ValidationError(f"{path}: projectId does not match {project.name!r}")
-        comments = [Comment(**c) for c in data.pop("comments", [])]
-        return Task(description=body, comments=comments, projectName=project.name, **data)
+        known, extra = _split(data, _TASK_FIELDS)
+        comments = []
+        for c in known.pop("comments", []):
+            c_known, c_extra = _split(c, _COMMENT_FIELDS)
+            comments.append(Comment(extra=c_extra, **c_known))
+        if known.get("dueDate") is None:
+            known.pop("dueDate", None)
+        return Task(
+            description=body, comments=comments, projectName=project.name, extra=extra, **known
+        )
 
     def _write_task(self, project: Project, task: Task) -> None:
         _validate(_task_validator, task.frontmatter(), f"task {task.id}")
@@ -396,7 +488,10 @@ class Store:
         title: str,
         description: str = "",
         labels: list[str] | None = None,
+        due_date: str | None = None,
     ) -> Task:
+        if due_date is not None:
+            check_due_date(due_date)
         project = self.get_project(project_name)
         ts = now_utc()
         task = Task(
@@ -411,6 +506,7 @@ class Store:
             updatedBy=self.actor,
             labels=_clean_labels(labels),
             description=description,
+            dueDate=due_date,
             projectName=project.name,
         )
         self._write_task(project, task)
@@ -424,7 +520,19 @@ class Store:
         stale_days: float | None = None,
         label: str | None = None,
         now: datetime | None = None,
+        due_before: str | None = None,
+        overdue: bool = False,
+        has_due: bool = False,
+        sort: str = "updated",
+        on: date | None = None,
     ) -> list[Task]:
+        """`due_before`: Fälligkeit vor diesem Datum. `overdue`: offen und vor `on` (Standard
+        heute) fällig. `has_due`: nur Tasks mit Datum. `sort`: "updated" (neueste zuerst) oder
+        "due" (frühestes Datum zuerst, ohne Datum am Ende)."""
+        if due_before is not None:
+            check_due_date(due_before)
+        if sort not in ("updated", "due"):
+            raise ValidationError(f"Unknown sort order: {sort!r} (updated, due)")
         projects = [self.get_project(project_name)] if project_name else self.list_projects()
         cutoff = None
         if stale_days is not None:
@@ -444,8 +552,18 @@ class Store:
                     continue
                 if cutoff and parse_ts(t.updatedAt) > cutoff:
                     continue
+                if has_due and not t.dueDate:
+                    continue
+                if due_before and not (t.dueDate and t.dueDate < due_before):
+                    continue
+                if overdue and not t.is_overdue(on):
+                    continue
                 out.append(t)
-        return sorted(out, key=lambda t: t.updatedAt, reverse=True)
+        out.sort(key=lambda t: t.updatedAt, reverse=True)
+        if sort == "due":
+            # stabil: gleiche Daten bleiben nach updatedAt sortiert, ohne Datum ans Ende
+            out.sort(key=lambda t: (t.dueDate is None, t.dueDate or ""))
+        return out
 
     def _update(self, task_id: str, mutate) -> Task:
         project, task = self._find_task(task_id)
@@ -461,9 +579,13 @@ class Store:
         title: str | None = None,
         description: str | None = None,
         labels: list[str] | None = None,
+        due_date: str | None | object = UNSET,
     ) -> Task:
-        if title is None and description is None and labels is None:
-            raise ValidationError("edit without change (title/description/labels)")
+        """`due_date`: ein Datum setzt es, None entfernt es, UNSET (Standard) lässt es."""
+        if title is None and description is None and labels is None and due_date is UNSET:
+            raise ValidationError("edit without change (title/description/labels/due date)")
+        if isinstance(due_date, str):
+            check_due_date(due_date)
 
         def mutate(t: Task) -> None:
             if title is not None:
@@ -472,6 +594,8 @@ class Store:
                 t.description = description
             if labels is not None:
                 t.labels = _clean_labels(labels)
+            if due_date is not UNSET:
+                t.dueDate = due_date
 
         return self._update(task_id, mutate)
 

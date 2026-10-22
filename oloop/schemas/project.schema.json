@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://oloop.local/schema/project.schema.json",
   "title": "Project",
-  "description": "Frontmatter schema for project.md. Authoritative on conflict with SPEC.md.",
+  "description": "Frontmatter schema for project.md. Authoritative on conflict with SPEC.md. Unknown fields are allowed and must be preserved when writing.",
   "type": "object",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": ["id", "name", "createdAt"],
   "properties": {
     "formatVersion": {

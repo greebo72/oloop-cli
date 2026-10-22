@@ -7,7 +7,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-from .store import STATUSES, TASK_TYPES, Store, StoreError, parse_ts
+from .store import STATUSES, TASK_TYPES, UNSET, Store, StoreError, parse_ts
 
 # Display label per type for status=closed (SPEC "One status field")
 CLOSED_LABEL = {
@@ -31,9 +31,12 @@ def _age(ts: str) -> str:
 def _line(t) -> str:
     status = CLOSED_LABEL[t.type] if t.status == "closed" else "open"
     labels = f" [{', '.join(t.labels)}]" if t.labels else ""
+    due = ""
+    if t.dueDate:
+        due = f" due {t.dueDate}" + (" OVERDUE" if t.is_overdue() else "")
     return (
         f"{t.id[:8]}  {t.type:<8} {status:<11} {t.projectName}  "
-        f"{_age(t.updatedAt):>6}  {t.title}{labels}"
+        f"{_age(t.updatedAt):>6}  {t.title}{labels}{due}"
     )
 
 
@@ -68,16 +71,19 @@ def cmd_project_list(store, args):
 
 
 def cmd_task_add(store, args):
-    t = store.add_task(args.project, args.type, args.title, args.description, args.label)
+    t = store.add_task(
+        args.project, args.type, args.title, args.description, args.label, args.due
+    )
     print(f"Task created: {t.id}")
 
 
 def cmd_task_list(store, args):
     tasks = store.list_tasks(
-        args.project, args.type, args.status, args.stale_days, args.label
+        args.project, args.type, args.status, args.stale_days, args.label,
+        due_before=args.due_before, overdue=args.overdue, has_due=args.has_due, sort=args.sort,
     )
     if args.json:
-        return _dump([t.to_dict() for t in tasks])
+        return _dump([t.to_dict(explicit_due=True) for t in tasks])
     for t in tasks:
         print(_line(t))
 
@@ -85,9 +91,11 @@ def cmd_task_list(store, args):
 def cmd_task_show(store, args):
     t = store.get_task(_task_id(store, args))
     if args.json:
-        return _dump(t.to_dict())
+        return _dump(t.to_dict(explicit_due=True))
     print(_line(t))
     print(f"id: {t.id}")
+    if t.dueDate:
+        print(f"due: {t.dueDate}" + (" (overdue)" if t.is_overdue() else ""))
     print(f"created {t.createdAt} by {t.createdBy}; updated {t.updatedAt} by {t.updatedBy}")
     if t.imagePath:
         print(f"image: {t.imagePath}")
@@ -99,7 +107,8 @@ def cmd_task_show(store, args):
 
 def cmd_task_edit(store, args):
     labels = [] if args.clear_labels else args.label
-    t = store.edit_task(_task_id(store, args), args.title, args.description, labels)
+    due = None if args.clear_due else args.due if args.due is not None else UNSET
+    t = store.edit_task(_task_id(store, args), args.title, args.description, labels, due)
     print(f"Task updated: {t.id}")
 
 
@@ -157,6 +166,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("title")
     p.add_argument("--description", "-d", default="")
     p.add_argument("--label", "-l", action="append", default=[])
+    p.add_argument("--due", metavar="YYYY-MM-DD", help="due date (calendar day, no time zone)")
 
     p = leaf(task, "list", cmd_task_list, True)
     p.add_argument("--project", "-p")
@@ -164,6 +174,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--status", "-s", choices=STATUSES)
     p.add_argument("--stale-days", type=float, help="only tasks unchanged for N days")
     p.add_argument("--label", "-l")
+    p.add_argument("--due-before", metavar="YYYY-MM-DD",
+                   help="only tasks with a due date before this day")
+    p.add_argument("--overdue", action="store_true",
+                   help="only open tasks whose due date has passed")
+    p.add_argument("--has-due", action="store_true", help="only tasks with a due date")
+    p.add_argument("--sort", choices=("updated", "due"), default="updated",
+                   help="updated: newest first (default); due: earliest due date first, "
+                        "tasks without a date last")
 
     leaf(task, "show", cmd_task_show, True).add_argument("id")
 
@@ -174,6 +192,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--label", "-l", action="append", default=None,
                    help="replaces all labels (repeatable)")
     p.add_argument("--clear-labels", action="store_true")
+    due = p.add_mutually_exclusive_group()
+    due.add_argument("--due", metavar="YYYY-MM-DD", help="set the due date")
+    due.add_argument("--clear-due", action="store_true", help="remove the due date")
 
     p = leaf(task, "image", cmd_task_image)
     p.add_argument("id")
