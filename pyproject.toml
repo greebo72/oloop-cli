@@ -1,6 +1,6 @@
 [project]
 name = "oloop"
-version = "0.1.0"
+version = "0.5.0"
 description = "Lokaler Cross-Projekt-Tracker (Markdown + YAML-Frontmatter)"
 requires-python = ">=3.11"
 dependencies = [
