@@ -139,3 +139,18 @@ def test_label_filter_flag(run):
     assert len(titles()) == 4
     # die Ausgabe zeigt die gespeicherte Schreibweise
     assert "[Bug]" in run("task", "list", "-l", "bug")[1]
+
+
+def test_version(capsys):
+    from importlib.metadata import version
+
+    from oloop import __version__
+
+    with pytest.raises(SystemExit) as stop:
+        main(["--version"])
+
+    assert stop.value.code == 0
+    out = capsys.readouterr().out.strip()
+    assert out == f"oloop {__version__}"
+    assert __version__ == version("oloop")  # from the installed package, not a second copy
+    assert out.split()[1][0].isdigit()

@@ -8,6 +8,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import __version__
 from .export import export_project, export_task
 from .store import STATUSES, TASK_TYPES, UNSET, Store, StoreError, parse_ts
 
@@ -161,6 +162,7 @@ def cmd_comment_add(store, args):
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="oloop")
+    ap.add_argument("--version", action="version", version=f"oloop {__version__}")
     ap.add_argument("--root", help="data root (default: $OLOOP_ROOT)")
     ap.add_argument("--actor", help="actor for createdBy/updatedBy (default: $OLOOP_ACTOR)")
     sub = ap.add_subparsers(dest="group", required=True)

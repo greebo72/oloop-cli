@@ -64,6 +64,7 @@ oloop task close <id>
 oloop export project myproject -o myproject.html   # name, task list, every task as a card, with comments
 oloop export task <id> -o task.html                # one task; add --include-closed to a project export
 oloop project find          # project for the current directory
+oloop --version               # the installed version
 ```
 
 The HTML export is one self-contained file (no network needed) with a print stylesheet, so *Print to PDF* in a browser gives a PDF. Markdown is rendered, raw HTML in it is shown as text, images from the project folder are embedded.
