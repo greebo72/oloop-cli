@@ -121,3 +121,21 @@ def test_due_date_errors(run):
     assert run("task", "list", "--due-before", "nope")[0] == 1
     with pytest.raises(SystemExit):  # --due und --clear-due schließen sich aus
         run("task", "edit", tid[:8], "--due", "2999-01-01", "--clear-due")
+
+
+def test_label_filter_flag(run):
+    run("project", "add", "Demo")
+    run("task", "add", "-p", "demo", "-t", "bug", "A", "-l", "Bug")
+    run("task", "add", "-p", "demo", "-t", "todo", "B", "-l", "ui")
+    run("task", "add", "-p", "demo", "-t", "todo", "C", "-l", "docs")
+    run("task", "add", "-p", "demo", "-t", "todo", "D")
+
+    titles = lambda *a: sorted(
+        t["title"] for t in json.loads(run("task", "list", "--json", *a)[1])
+    )
+    assert titles("-l", "bug") == ["A"]  # andere Schreibweise
+    assert titles("-l", "BUG", "-l", "ui") == ["A", "B"]  # wiederholbar, Oder
+    assert titles("--label", "nope") == []
+    assert len(titles()) == 4
+    # die Ausgabe zeigt die gespeicherte Schreibweise
+    assert "[Bug]" in run("task", "list", "-l", "bug")[1]

@@ -305,3 +305,35 @@ def test_unknown_fields_survive_every_write(store):
     out = path.read_text(encoding="utf-8")
     assert "priority: high\n" in out and "score: 42\n" in out  # Typ bleibt Zahl
     assert store.get_task(t.id).to_dict()["score"] == 42
+
+
+# ---- Label-Filter --------------------------------------------------------------------
+
+
+def test_label_filter_ignores_case_and_keeps_stored_spelling(store):
+    store.add_project("A")
+    t = store.add_task("A", "bug", "x", labels=["Bug", "UI"])
+    store.add_task("A", "todo", "y", labels=["docs"])
+
+    for query in ("bug", "BUG", "Bug", ["bUg"]):
+        (found,) = store.list_tasks(label=query)
+        assert found.id == t.id
+        assert found.labels == ["Bug", "UI"]  # Datei und Ausgabe unverändert
+
+    # casefold, nicht lower(): "ß" und "SS" sind dasselbe Label
+    store.add_task("A", "todo", "z", labels=["Straße"])
+    assert [x.title for x in store.list_tasks(label="STRASSE")] == ["z"]
+
+
+def test_label_filter_with_several_labels_is_or(store):
+    store.add_project("A")
+    store.add_task("A", "todo", "a", labels=["Bug"])
+    store.add_task("A", "todo", "b", labels=["ui"])
+    store.add_task("A", "todo", "c", labels=["docs"])
+    store.add_task("A", "todo", "d")  # ohne Labels
+
+    got = sorted(t.title for t in store.list_tasks(label=["bug", "UI"]))
+    assert got == ["a", "b"]
+    assert store.list_tasks(label=["nope", "missing"]) == []
+    assert len(store.list_tasks(label=[])) == 4  # leere Liste = kein Filter
+    assert len(store.list_tasks(label=None)) == 4
