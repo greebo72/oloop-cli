@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://oloop.local/schema/task.schema.json",
   "title": "Task",
-  "description": "Frontmatter schema for tasks/<task-id>.md. The Markdown body of the file is the description. Authoritative on conflict with SPEC.md.",
+  "description": "Frontmatter schema for tasks/<task-id>.md. The Markdown body of the file is the description. Authoritative on conflict with SPEC.md. Unknown fields are allowed and must be preserved when writing.",
   "type": "object",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": ["id", "projectId", "type", "title", "status", "createdAt", "createdBy", "updatedAt", "updatedBy", "labels"],
   "properties": {
     "formatVersion": {
@@ -34,7 +34,13 @@
     },
     "imagePath": {
       "type": ["string", "null"],
-      "description": "Relative to the project folder, e.g. 'images/<task-id>.png'. Null until an image is set."
+      "description": "Relative to the project folder, e.g. 'images/<task-id>.png'. Null until an image is set, and null again after it is removed. Extension is one of png, jpg, jpeg, gif, webp (see SPEC.md, Task image)."
+    },
+    "dueDate": {
+      "type": ["string", "null"],
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Optional. Calendar date 'YYYY-MM-DD' by which the task should be done, no time and no time zone. Absent or null means no due date."
     },
     "status": {
       "type": "string",
@@ -59,7 +65,7 @@
     "labels": {
       "type": "array",
       "uniqueItems": true,
-      "description": "Free labels. Order as assigned, no duplicates, empty allowed.",
+      "description": "Free labels. Order as assigned, no duplicates, empty allowed. Stored as written; comparisons ignore case (see SPEC.md, Comparing labels).",
       "items": { "type": "string", "minLength": 1, "maxLength": 100 }
     },
     "updatedAt": {
@@ -72,7 +78,7 @@
       "description": "Append-only, no delete, no edits. Chronological by createdAt.",
       "items": {
         "type": "object",
-        "additionalProperties": false,
+        "additionalProperties": true,
         "required": ["body", "createdAt"],
         "properties": {
           "body": {

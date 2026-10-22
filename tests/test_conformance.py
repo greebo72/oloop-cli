@@ -54,3 +54,32 @@ def test_package_schema_matches_spec(name):
     assert (PKG_SCHEMAS / name).read_bytes() == (SPEC / "schemas" / name).read_bytes(), (
         "run `python sync_schemas.py`"
     )
+
+
+@pytest.mark.parametrize("name", ["due-date", "unknown-fields"])
+def test_round_trip(name, tmp_path):
+    """Lesen, schreiben, wieder lesen: dasselbe Ergebnis wie expected.json (inkl. dueDate
+    und unbekannten Feldern, auch in Projekten und Kommentaren)."""
+    root = tmp_path / "root"
+    shutil.copytree(FIXTURES / "valid" / name / "root", root)
+    expected = json.loads((FIXTURES / "valid" / name / "expected.json").read_text(encoding="utf-8"))
+    store = Store(root, actor="test")
+
+    for p in store.list_projects():
+        store.edit_project(p.name, reference_host=p.referenceHost or "h")
+    for t in store.list_tasks():
+        # jede Schreibart: Edit ohne Änderung des Datums, Schließen, Wiederöffnen
+        store.edit_task(t.id, title=t.title)
+        store.close_task(t.id)
+        store.reopen_task(t.id)
+        if t.status == "closed":
+            store.close_task(t.id)
+
+    got = _read_all(store)
+    # Nur die von uns gesetzten Felder dürfen abweichen
+    for t_got, t_exp in zip(got["tasks"], expected["tasks"]):
+        for key in ("updatedAt", "updatedBy"):
+            t_got.pop(key), t_exp.pop(key)
+    for p_got, p_exp in zip(got["projects"], expected["projects"]):
+        p_got.pop("referenceHost", None), p_exp.pop("referenceHost", None)
+    assert got == expected

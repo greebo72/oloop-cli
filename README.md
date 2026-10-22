@@ -56,11 +56,14 @@ To work on the code, clone it with `git clone --recurse-submodules` and run `uv 
 oloop project add myproject --reference-path ~/dev/myproject
 oloop task add -p myproject -t todo "Check backups" -l infra
 oloop task list -s open --stale-days 14
+oloop task add -p myproject -t todo "Renew cert" --due 2026-11-01
+oloop task edit <id> --due 2026-12-01      # or --clear-due
+oloop task list --overdue                  # also --due-before DATE, --has-due, --sort due
 oloop task close <id>
 oloop project find          # project for the current directory
 ```
 
-Task types are `todo`, `question`, `decision`, `feature`, and `bug`. Comments, labels, and images attach directly to a task. `list` and `show` support `--json` for machine-readable output. Run `oloop --help` to explore all commands.
+Task types are `todo`, `question`, `decision`, `feature`, and `bug`. Comments, labels, and images attach directly to a task. A due date is a plain calendar day (`YYYY-MM-DD`, no time zone); closed tasks keep it but are never overdue. `list` and `show` support `--json` for machine-readable output. Run `oloop --help` to explore all commands.
 
 ## Architecture & Constraints
 

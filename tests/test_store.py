@@ -214,3 +214,94 @@ def test_add_attachment(store, tmp_path):
     assert t1.imagePath is None  # Hauptbild unberührt
     with pytest.raises(NotFound):
         store.add_attachment(t.id, tmp_path / "nope.jpg")
+
+
+# ---- dueDate ------------------------------------------------------------------------
+
+
+def _file(store, task):
+    return (store.root / "a" / "tasks" / f"{task.id}.md").read_text(encoding="utf-8")
+
+
+def test_due_date_set_change_clear(store):
+    from oloop.store import UNSET
+
+    store.add_project("A")
+    t = store.add_task("A", "todo", "x", due_date="2026-11-01")
+    assert store.get_task(t.id).dueDate == "2026-11-01"
+    assert "dueDate: 2026-11-01\n" in _file(store, t)  # unquotiert
+
+    t = store.edit_task(t.id, due_date="2026-12-24")
+    assert store.get_task(t.id).dueDate == "2026-12-24"
+
+    # ein Edit ohne Datum lässt es, und setzt updatedBy
+    t = store.edit_task(t.id, title="y", due_date=UNSET)
+    assert t.dueDate == "2026-12-24" and t.updatedBy == store.actor
+
+    # Entfernen: das Feld fehlt in der Datei, kein null
+    t = store.edit_task(t.id, due_date=None)
+    assert store.get_task(t.id).dueDate is None
+    assert "dueDate" not in _file(store, t)
+    assert "dueDate" not in t.to_dict()
+    assert t.to_dict(explicit_due=True)["dueDate"] is None
+
+
+@pytest.mark.parametrize("bad", ["2026-02-30", "2026-13-01", "01.11.2026", "2026-1-1", "", "morgen"])
+def test_invalid_due_date_is_refused(store, bad):
+    store.add_project("A")
+    with pytest.raises(ValidationError):
+        store.add_task("A", "todo", "x", due_date=bad)
+    t = store.add_task("A", "todo", "x")
+    with pytest.raises(ValidationError):
+        store.edit_task(t.id, due_date=bad)
+    assert store.get_task(t.id).dueDate is None
+
+
+def test_due_date_filters_and_sort(store):
+    from datetime import date
+
+    store.add_project("A")
+    late = store.add_task("A", "todo", "late", due_date="2026-01-10")
+    soon = store.add_task("A", "todo", "soon", due_date="2026-03-01")
+    none = store.add_task("A", "todo", "none")
+    done = store.add_task("A", "todo", "done-late", due_date="2026-01-05")
+    store.close_task(done.id)
+    on = date(2026, 3, 1)
+
+    titles = lambda **kw: [t.title for t in store.list_tasks(on=on, **kw)]
+    assert sorted(titles(has_due=True)) == ["done-late", "late", "soon"]
+    # geschlossene Tasks sind nie überfällig; "heute" ist nicht überfällig
+    assert titles(overdue=True) == ["late"]
+    assert sorted(titles(due_before="2026-03-01")) == ["done-late", "late"]
+    # Sortierung: frühestes Datum zuerst, ohne Datum am Ende
+    assert titles(sort="due") == ["done-late", "late", "soon", "none"]
+    with pytest.raises(ValidationError):
+        store.list_tasks(due_before="nope")
+    assert late.is_overdue(on) and not soon.is_overdue(on) and not none.is_overdue(on)
+
+
+def test_due_date_does_not_depend_on_status(store):
+    store.add_project("A")
+    t = store.add_task("A", "todo", "x", due_date="2020-01-01")
+    store.close_task(t.id)
+    got = store.get_task(t.id)
+    assert got.dueDate == "2020-01-01" and not got.is_overdue()
+
+
+# ---- unbekannte Felder ---------------------------------------------------------------
+
+
+def test_unknown_fields_survive_every_write(store):
+    store.add_project("A")
+    t = store.add_task("A", "todo", "x")
+    path = store.root / "a" / "tasks" / f"{t.id}.md"
+    text = path.read_text(encoding="utf-8")
+    text = text.replace("comments: []\n", "comments: []\npriority: high\nscore: 42\n")
+    path.write_text(text, encoding="utf-8")
+
+    store.edit_task(t.id, title="y")
+    store.close_task(t.id)
+    store.add_comment(t.id, "hi")
+    out = path.read_text(encoding="utf-8")
+    assert "priority: high\n" in out and "score: 42\n" in out  # Typ bleibt Zahl
+    assert store.get_task(t.id).to_dict()["score"] == 42
