@@ -183,3 +183,25 @@ def test_load_from_env_or_path(tmp_path, sample_credentials, monkeypatch):
     loaded_explicit = AgentCredentials.load_from_env_or_path(path_explicit)
     assert loaded_explicit is not None
     assert loaded_explicit == sample_credentials
+
+
+def test_name_roundtrip_once_and_kept_on_renew(sample_credentials):
+    from dataclasses import replace
+
+    named = replace(sample_credentials, name="claude")
+    data = named.to_dict()
+    assert data["name"] == "claude"
+    again = AgentCredentials.from_dict(data)
+    assert again.name == "claude" and "name" not in again.extra
+    assert again.with_token("new_token_value").name == "claude"
+    pk, sk = generate_keypair()
+    assert again.with_keypair(pk, sk, "new_token_value").name == "claude"
+    assert "name" not in sample_credentials.to_dict()
+
+
+@pytest.mark.parametrize("bad", ["", 5, "x" * 101])
+def test_name_validation(sample_credentials, bad):
+    data = sample_credentials.to_dict()
+    data["name"] = bad
+    with pytest.raises(CredentialsError, match="name must be"):
+        AgentCredentials.from_dict(data)

@@ -111,6 +111,7 @@ class AgentCredentials:
     Holds:
     - server: base URL of the oloop server
     - agent_id: UUID of the agent
+    - name: optional label the user gave the agent; default actor (createdBy)
     - token: bearer token used for authenticating API calls
     - public_key: agent's current X25519 public key (32 bytes)
     - secret_key: agent's current X25519 secret key (32 bytes)
@@ -126,6 +127,7 @@ class AgentCredentials:
     owner: AgentOwner
     expires_at: str | None = None
     key_number: int = 1
+    name: str | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -137,6 +139,9 @@ class AgentCredentials:
             uuid.UUID(str(self.agent_id))
         except ValueError as e:
             raise CredentialsError(f"Invalid agentId UUID {self.agent_id!r}") from e
+
+        if self.name is not None and not (isinstance(self.name, str) and 1 <= len(self.name) <= 100):
+            raise CredentialsError("name must be a string of 1 to 100 characters")
 
         # Validate token
         if not self.token or not isinstance(self.token, str):
@@ -182,6 +187,7 @@ class AgentCredentials:
             owner=self.owner,
             expires_at=expires_at if expires_at is not None else self.expires_at,
             key_number=self.key_number,
+            name=self.name,
             extra=self.extra,
         )
 
@@ -203,6 +209,7 @@ class AgentCredentials:
             owner=self.owner,
             expires_at=expires_at if expires_at is not None else self.expires_at,
             key_number=key_number if key_number is not None else (self.key_number + 1),
+            name=self.name,
             extra=self.extra,
         )
 
@@ -211,6 +218,7 @@ class AgentCredentials:
         d: dict[str, Any] = {
             "server": self.server,
             "agentId": str(self.agent_id),
+            **({"name": self.name} if self.name is not None else {}),
             "token": self.token,
             "publicKey": self.public_key_b64,
             "secretKey": self.secret_key_b64,
@@ -247,7 +255,7 @@ class AgentCredentials:
         expires_at = data.get("expiresAt")
         key_number = data.get("keyNumber", 1)
 
-        known = {"server", "agentId", "token", "publicKey", "secretKey", "owner", "expiresAt", "keyNumber"}
+        known = {"server", "agentId", "token", "publicKey", "secretKey", "owner", "expiresAt", "keyNumber", "name"}
         extra = {k: v for k, v in data.items() if k not in known}
 
         return cls(
@@ -259,6 +267,7 @@ class AgentCredentials:
             owner=owner,
             expires_at=expires_at,
             key_number=int(key_number),
+            name=data.get("name"),
             extra=extra,
         )
 

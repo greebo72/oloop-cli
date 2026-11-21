@@ -291,3 +291,31 @@ def test_image_blob_upload_and_download(mock_environment, tmp_path):
 
     downloaded_bytes = store.get_image_bytes(task.id)
     assert downloaded_bytes == png_bytes
+
+
+def test_actor_order_from_credentials(monkeypatch):
+    import uuid
+    from dataclasses import replace
+
+    from oloop.credentials import AgentCredentials, AgentOwner
+    from oloop.crypto import generate_keypair
+
+    pk, sk = generate_keypair()
+    owner_pk, _ = generate_keypair()
+    creds = AgentCredentials(
+        server="https://oloop.example.com",
+        agent_id=str(uuid.uuid4()),
+        token="agent_tok_1234567890abcdef",
+        public_key=pk,
+        secret_key=sk,
+        owner=AgentOwner(id=str(uuid.uuid4()), public_key=owner_pk),
+        name="claude",
+    )
+    monkeypatch.delenv("OLOOP_ACTOR", raising=False)
+    assert ServerStore.from_credentials(creds).actor == "claude"
+    monkeypatch.setenv("OLOOP_ACTOR", "bot")
+    assert ServerStore.from_credentials(creds).actor == "bot"
+    assert ServerStore.from_credentials(creds, actor="x").actor == "x"
+    monkeypatch.delenv("OLOOP_ACTOR")
+    monkeypatch.setattr("getpass.getuser", lambda: "osuser")
+    assert ServerStore.from_credentials(replace(creds, name=None)).actor == "osuser"

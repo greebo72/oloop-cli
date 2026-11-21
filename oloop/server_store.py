@@ -111,6 +111,8 @@ class ServerStore:
     ) -> ServerStore:
         """Create a ServerStore from AgentCredentials."""
         cli = client or ServerClient(credentials.server, token=credentials.token)
+        # Actor order: --actor, $OLOOP_ACTOR, name from the credentials, OS user (in __init__)
+        actor = actor or os.environ.get("OLOOP_ACTOR") or credentials.name
         return cls(
             client=cli,
             secret_key=credentials.secret_key,
