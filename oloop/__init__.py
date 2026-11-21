@@ -10,6 +10,7 @@ from .credentials import (
     AgentOwner,
     CredentialsError,
 )
+from .server_store import ServerStore
 from .store import (
     Comment,
     Conflict,
@@ -39,6 +40,7 @@ __all__ = [
     "ServerApiError",
     "ServerClient",
     "ServerResponse",
+    "ServerStore",
     "Store",
     "StoreError",
     "Task",
