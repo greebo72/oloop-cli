@@ -11,16 +11,22 @@ This short guide shows how to use **oloop‑cli** with the new encrypted server 
 - An **Agent Credentials** JSON file (or the `$OLOOP_AGENT_CREDENTIALS` environment variable) that contains:
   ```json
   {
-    "server": "https://my‑oloop‑server.example.com",
-    "agentId": "my‑agent",
-    "token": "<jwt-token>",
-    "publicKey": "<base64url‑public>",
-    "secretKey": "<base64url‑secret>",
-    "owner": "my‑user",
+    "server": "https://my-oloop-server.example.com",
+    "agentId": "<agent UUID>",
+    "name": "<agent name>",
+    "token": "<token>",
+    "publicKey": "<base64url, 32 bytes>",
+    "secretKey": "<base64url, 32 bytes>",
+    "owner": {
+      "id": "<user UUID>",
+      "publicKey": "<base64url, 32 bytes>"
+    },
     "expiresAt": "2027-01-01T00:00:00Z",
-    "keyNumber": 1
+    "keyNumber": 2
   }
   ```
+  `name` (the label the user gave the agent; used as the default `createdBy`, see `SPEC-agent-identity-and-created-by.md`), `expiresAt` and `keyNumber` are optional. The CLI writes `expiresAt` itself, and `keyNumber` only after the first key rotation (it starts at 1 and is left out while it is 1).
+  The file cannot be written by hand: the token comes from the server when a user registers the agent, and that needs the user's secret key. Create the agent in the oloop desktop app (see `oloop-desktop/docs/SPEC-agent-management.md`).
 - Python 3.11+ and the virtual‑env used for development.
 
 ---
@@ -93,12 +99,13 @@ A new public/secret key‑pair is generated, uploaded to the server, and the cre
 |----------------|-------------|
 | `server`       | Base URL of the oloop server |
 | `agentId`      | Identifier of the CLI agent |
+| `name`         | Name the user gave the agent (optional). A label, not an identity; the default `createdBy` when no `--actor` or `$OLOOP_ACTOR` is set |
 | `token`        | JWT used for authentication |
 | `publicKey`    | Base64‑url encoded public key |
 | `secretKey`    | Base64‑url encoded secret key (private) |
-| `owner`        | User that owns the agent |
-| `expiresAt`    | ISO‑8601 timestamp of token expiry (optional, added by CLI) |
-| `keyNumber`    | Incrementing counter for key‑pair rotations |
+| `owner`        | Object `{ id, publicKey }`: UUID and base64url public key of the user who owns the agent. The agent checks every key it receives against `owner.publicKey` |
+| `expiresAt`    | ISO-8601 timestamp of token expiry (optional, written by the CLI) |
+| `keyNumber`    | Number of the current key pair, counting from 1 (optional, written only after a rotation) |
 
 The CLI reads this JSON via `AgentCredentials.from_path`. It will refuse a file that is missing any required field.
 
