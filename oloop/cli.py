@@ -9,7 +9,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import __version__
+from .client import ServerApiError, ServerClient
+from .credentials import AgentCredentials, CredentialsError
+from .crypto import (
+    b64url_encode,
+    create_agent_statement,
+    generate_keypair,
+    wrap_project_key,
+)
 from .export import export_project, export_task
+from .server_store import ServerStore
 from .store import STATUSES, TASK_TYPES, UNSET, Store, StoreError, parse_ts
 
 # Display label per type for status=closed (SPEC "One status field")
@@ -160,11 +169,81 @@ def cmd_comment_add(store, args):
     print(f"Comment added: {t.id}")
 
 
+def cmd_agent_renew(store: Store | ServerStore, args) -> None:
+    cred_path = AgentCredentials.resolve_path(args.credentials)
+    if not cred_path:
+        raise StoreError("No agent credentials found (use --credentials or $OLOOP_AGENT_CREDENTIALS)")
+
+    creds = AgentCredentials.load(cred_path)
+    client = ServerClient(creds.server, token=creds.token)
+
+    if args.keypair:
+        import uuid
+
+        server_store = (
+            store
+            if isinstance(store, ServerStore)
+            else ServerStore.from_credentials(creds, client=client)
+        )
+        server_store.refresh()
+
+        new_pk, new_sk = generate_keypair()
+        keys_payload = []
+        for pid, versions in server_store._project_keys.items():
+            for kv, proj_key in versions.items():
+                wrapped = wrap_project_key(
+                    proj_key,
+                    uuid.UUID(pid),
+                    kv,
+                    recipient_pk=new_pk,
+                    sender_sk=new_sk,
+                )
+                keys_payload.append({
+                    "projectId": pid,
+                    "keyVersion": kv,
+                    "wrapped": b64url_encode(wrapped),
+                })
+
+        new_key_num = creds.key_number + 1
+        statement = create_agent_statement(
+            new_agent_pk=new_pk,
+            agent_id=creds.agent_id,
+            key_number=new_key_num,
+            user_pk=creds.owner.public_key,
+            old_agent_sk=creds.secret_key,
+        )
+
+        res = client.agent_rotate_keypair(
+            public_key=new_pk,
+            statement=statement,
+            keys=keys_payload,
+        )
+        new_token = res["token"]
+        expires_at = res.get("expiresAt")
+        updated = creds.with_keypair(
+            new_public_key=new_pk,
+            new_secret_key=new_sk,
+            new_token=new_token,
+            expires_at=expires_at,
+            key_number=new_key_num,
+        )
+        updated.save(cred_path)
+        print(f"Key pair rotated and token renewed. Valid until: {expires_at or 'renewed'}")
+    else:
+        res = client.agent_renew()
+        new_token = res["token"]
+        expires_at = res.get("expiresAt")
+        updated = creds.with_token(new_token, expires_at=expires_at)
+        updated.save(cred_path)
+        print(f"Token renewed. Valid until: {expires_at or 'renewed'}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="oloop")
     ap.add_argument("--version", action="version", version=f"oloop {__version__}")
     ap.add_argument("--root", help="data root (default: $OLOOP_ROOT)")
     ap.add_argument("--actor", help="actor for createdBy/updatedBy (default: $OLOOP_ACTOR)")
+    ap.add_argument("--credentials", help="agent credentials file (default: $OLOOP_AGENT_CREDENTIALS)")
     sub = ap.add_subparsers(dest="group", required=True)
 
     def leaf(parent, name, fn, json_flag=False):
@@ -248,14 +327,43 @@ def build_parser() -> argparse.ArgumentParser:
     p = leaf(com, "add", cmd_comment_add)
     p.add_argument("id")
     p.add_argument("body")
+
+    agent = sub.add_parser("agent", help="agent identity and key management (AGENTS.md)").add_subparsers(
+        dest="cmd", required=True
+    )
+    p = leaf(agent, "renew", cmd_agent_renew)
+    p.add_argument(
+        "--keypair",
+        action="store_true",
+        help="also rotate the agent's cryptographic key pair (all or nothing)",
+    )
     return ap
+
+
+def get_store(args) -> Store | ServerStore:
+    cred_path = AgentCredentials.resolve_path(args.credentials)
+    if cred_path:
+        try:
+            creds = AgentCredentials.load(cred_path)
+        except Exception as e:
+            raise StoreError(f"Credentials file unusable: {e}") from None
+
+        if creds.is_expiring_soon():
+            print(
+                f"Warning: Agent token expires on {creds.expires_at}. Run 'oloop agent renew' to extend it.",
+                file=sys.stderr,
+            )
+
+        return ServerStore.from_credentials(creds, actor=args.actor)
+    return Store(args.root, args.actor)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        args.fn(Store(args.root, args.actor), args)
-    except StoreError as e:
+        store = get_store(args)
+        args.fn(store, args)
+    except (StoreError, CredentialsError, ServerApiError) as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
     return 0

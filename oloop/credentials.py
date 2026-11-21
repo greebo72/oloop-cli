@@ -14,7 +14,8 @@ import stat
 import tempfile
 import urllib.parse
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -114,6 +115,8 @@ class AgentCredentials:
     - public_key: agent's current X25519 public key (32 bytes)
     - secret_key: agent's current X25519 secret key (32 bytes)
     - owner: user who owns this agent
+    - expires_at: optional ISO-8601 timestamp when the current token expires
+    - key_number: rotation sequence number of the key pair (starts at 1)
     """
     server: str
     agent_id: str
@@ -121,6 +124,9 @@ class AgentCredentials:
     public_key: bytes
     secret_key: bytes
     owner: AgentOwner
+    expires_at: str | None = None
+    key_number: int = 1
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         # Validate server URL
@@ -155,8 +161,18 @@ class AgentCredentials:
     def secret_key_b64(self) -> str:
         return b64url_encode(self.secret_key)
 
-    def with_token(self, new_token: str) -> AgentCredentials:
-        """Return a copy with an updated bearer token."""
+    def is_expiring_soon(self, within_days: float = 14.0) -> bool:
+        """Check if the agent token expires within within_days (AGENTS.md)."""
+        if not self.expires_at:
+            return False
+        try:
+            exp = datetime.fromisoformat(self.expires_at.replace("Z", "+00:00"))
+            return exp - datetime.now(timezone.utc) <= timedelta(days=within_days)
+        except Exception:
+            return False
+
+    def with_token(self, new_token: str, expires_at: str | None = None) -> AgentCredentials:
+        """Return a copy with an updated bearer token and optional expiration."""
         return AgentCredentials(
             server=self.server,
             agent_id=self.agent_id,
@@ -164,10 +180,20 @@ class AgentCredentials:
             public_key=self.public_key,
             secret_key=self.secret_key,
             owner=self.owner,
+            expires_at=expires_at if expires_at is not None else self.expires_at,
+            key_number=self.key_number,
+            extra=self.extra,
         )
 
-    def with_keypair(self, new_public_key: bytes, new_secret_key: bytes, new_token: str) -> AgentCredentials:
-        """Return a copy with rotated keypair and updated bearer token."""
+    def with_keypair(
+        self,
+        new_public_key: bytes,
+        new_secret_key: bytes,
+        new_token: str,
+        expires_at: str | None = None,
+        key_number: int | None = None,
+    ) -> AgentCredentials:
+        """Return a copy with rotated keypair, updated bearer token, and incremented key_number."""
         return AgentCredentials(
             server=self.server,
             agent_id=self.agent_id,
@@ -175,11 +201,14 @@ class AgentCredentials:
             public_key=new_public_key,
             secret_key=new_secret_key,
             owner=self.owner,
+            expires_at=expires_at if expires_at is not None else self.expires_at,
+            key_number=key_number if key_number is not None else (self.key_number + 1),
+            extra=self.extra,
         )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert credentials to JSON dict matching AGENTS.md."""
-        return {
+        d: dict[str, Any] = {
             "server": self.server,
             "agentId": str(self.agent_id),
             "token": self.token,
@@ -187,6 +216,11 @@ class AgentCredentials:
             "secretKey": self.secret_key_b64,
             "owner": self.owner.to_dict(),
         }
+        if self.expires_at:
+            d["expiresAt"] = self.expires_at
+        if self.key_number > 1:
+            d["keyNumber"] = self.key_number
+        return {**d, **self.extra}
 
     def to_json(self) -> str:
         """Serialize to pretty JSON string."""
@@ -210,6 +244,11 @@ class AgentCredentials:
             raise CredentialsError(f"Invalid base64url keys: {e}") from e
 
         owner = AgentOwner.from_dict(data["owner"])
+        expires_at = data.get("expiresAt")
+        key_number = data.get("keyNumber", 1)
+
+        known = {"server", "agentId", "token", "publicKey", "secretKey", "owner", "expiresAt", "keyNumber"}
+        extra = {k: v for k, v in data.items() if k not in known}
 
         return cls(
             server=str(data["server"]),
@@ -218,6 +257,9 @@ class AgentCredentials:
             public_key=pk_bytes,
             secret_key=sk_bytes,
             owner=owner,
+            expires_at=expires_at,
+            key_number=int(key_number),
+            extra=extra,
         )
 
     @classmethod
