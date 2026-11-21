@@ -1,5 +1,10 @@
 from importlib.metadata import PackageNotFoundError, version as _version
 
+from .client import (
+    ServerApiError,
+    ServerClient,
+    ServerResponse,
+)
 from .credentials import (
     AgentCredentials,
     AgentOwner,
@@ -31,6 +36,9 @@ __all__ = [
     "CredentialsError",
     "NotFound",
     "Project",
+    "ServerApiError",
+    "ServerClient",
+    "ServerResponse",
     "Store",
     "StoreError",
     "Task",
