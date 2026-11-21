@@ -1,5 +1,10 @@
 from importlib.metadata import PackageNotFoundError, version as _version
 
+from .credentials import (
+    AgentCredentials,
+    AgentOwner,
+    CredentialsError,
+)
 from .store import (
     Comment,
     Conflict,
@@ -19,8 +24,11 @@ except PackageNotFoundError:  # run from a source tree that was never installed
 
 __all__ = [
     "__version__",
+    "AgentCredentials",
+    "AgentOwner",
     "Comment",
     "Conflict",
+    "CredentialsError",
     "NotFound",
     "Project",
     "Store",
