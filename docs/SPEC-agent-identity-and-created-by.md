@@ -1,6 +1,6 @@
 # SPEC: Agent name as actor, and finding your own tasks
 
-**Status:** DRAFT (2026-11-21). Two small CLI features and one change of the credentials file. The protocol side (the `name` field, the actor order) is written down in `oloop-spec/AGENTS.md`, "The credentials file" and "Who wrote what"; this document says what the CLI does.
+**Status:** implemented (2026-11-22; drafted 2026-11-21). Two small CLI features and one change of the credentials file. The protocol side (the `name` field, the actor order) is written down in `oloop-spec/AGENTS.md`, "The credentials file" and "Who wrote what"; this document says what the CLI does.
 
 ## Why
 

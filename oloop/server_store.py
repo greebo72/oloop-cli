@@ -501,11 +501,13 @@ class ServerStore:
         has_due: bool = False,
         sort: str = "updated",
         on: date | None = None,
+        created_by: str | list[str] | tuple[str, ...] | None = None,
     ) -> list[Task]:
         self._ensure_loaded()
         if due_before is not None:
             check_due_date(due_before)
         wanted = {l.casefold() for l in ([label] if isinstance(label, str) else label or [])}
+        creators = {c.casefold() for c in ([created_by] if isinstance(created_by, str) else created_by or [])}
         if sort not in ("updated", "due"):
             raise ValidationError(f"Unknown sort order: {sort!r} (updated, due)")
 
@@ -523,6 +525,8 @@ class ServerStore:
             if status and t.status != status:
                 continue
             if wanted and not wanted & {l.casefold() for l in t.labels}:
+                continue
+            if creators and (t.createdBy or '').casefold() not in creators:
                 continue
             if cutoff and parse_ts(t.updatedAt) > cutoff:
                 continue

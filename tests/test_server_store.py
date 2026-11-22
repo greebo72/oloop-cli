@@ -238,6 +238,23 @@ def test_list_tasks_filters(mock_environment):
     assert [t.id for t in store.list_tasks(due_before="2026-11-20")] == [t2.id]
 
 
+def test_list_tasks_created_by(mock_environment):
+    store = mock_environment["store"]
+    store.actor = "claude"
+    t1 = store.add_task("Backend Project", "todo", "Task 1")
+    store.actor = "Claude"
+    t2 = store.add_task("Backend Project", "bug", "Task 2")
+    store.actor = "bot"
+    t3 = store.add_task("Backend Project", "todo", "Task 3")
+    ids = lambda ts: {t.id for t in ts}
+
+    assert ids(store.list_tasks(created_by="claude")) == {t1.id, t2.id}
+    assert ids(store.list_tasks(created_by=["bot"])) == {t3.id}
+    assert store.list_tasks(created_by="cla") == []
+    assert ids(store.list_tasks(created_by=["claude", "bot"])) == {t1.id, t2.id, t3.id}
+    assert ids(store.list_tasks(created_by="claude", type="bug")) == {t2.id}
+
+
 def test_edit_task_close_and_reopen(mock_environment):
     store = mock_environment["store"]
     t = store.add_task("Backend Project", "todo", "Task to edit")

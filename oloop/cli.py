@@ -90,9 +90,13 @@ def cmd_task_add(store, args):
 
 
 def cmd_task_list(store, args):
+    created_by = list(args.created_by or [])
+    if args.mine:
+        created_by.append(store.actor)
     tasks = store.list_tasks(
         args.project, args.type, args.status, args.stale_days, args.label,
         due_before=args.due_before, overdue=args.overdue, has_due=args.has_due, sort=args.sort,
+        created_by=created_by or None,
     )
     if args.json:
         return _dump([t.to_dict(explicit_due=True) for t in tasks])
@@ -281,6 +285,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--label", "-l", action="append",
                    help="repeatable; a task matches if it has at least one of them, "
                         "ignoring case")
+    p.add_argument("--created-by", action="append", metavar="TEXT",
+                   help="repeatable; only tasks whose createdBy equals TEXT, ignoring case. "
+                        "createdBy is free text, not proof.")
+    p.add_argument("--mine", action="store_true",
+                   help="shorthand for --created-by <actor> (--actor, $OLOOP_ACTOR, credentials "
+                        "name, OS user). createdBy is free text, not proof.")
     p.add_argument("--due-before", metavar="YYYY-MM-DD",
                    help="only tasks with a due date before this day")
     p.add_argument("--overdue", action="store_true",

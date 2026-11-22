@@ -160,6 +160,24 @@ def test_list_filters(store):
     assert store.list_tasks(project_name="A", type="bug")[0].projectName == "A"
 
 
+def test_list_created_by(store):
+    store.add_project("A")
+    store.actor = "claude"
+    t1 = store.add_task("A", "todo", "t1")
+    store.actor = "Claude"
+    t2 = store.add_task("A", "bug", "t2")
+    store.actor = "bot"
+    t3 = store.add_task("A", "todo", "t3")
+    ids = lambda ts: {t.id for t in ts}
+    assert ids(store.list_tasks(created_by="claude")) == {t1.id, t2.id}
+    assert ids(store.list_tasks(created_by=["bot"])) == {t3.id}
+    assert store.list_tasks(created_by="cla") == []
+    assert ids(store.list_tasks(created_by=["claude", "bot"])) == {t1.id, t2.id, t3.id}
+    assert ids(store.list_tasks(created_by="claude", type="bug")) == {t2.id}
+    store.close_task(t1.id)
+    assert ids(store.list_tasks(created_by="claude", status="open")) == {t2.id}
+
+
 def test_corrupt_file_detected(store):
     store.add_project("A")
     t = store.add_task("A", "todo", "x")

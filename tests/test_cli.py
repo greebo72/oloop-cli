@@ -154,3 +154,30 @@ def test_version(capsys):
     assert out == f"oloop {__version__}"
     assert __version__ == version("oloop")  # from the installed package, not a second copy
     assert out.split()[1][0].isdigit()
+
+
+def test_created_by_and_mine(tmp_path, capsys, monkeypatch):
+    def cli(*args, actor=None):
+        pre = ["--root", str(tmp_path)] + (["--actor", actor] if actor else [])
+        code = main([*pre, *args])
+        assert code == 0
+        return capsys.readouterr().out
+
+    def titles(*args, actor=None):
+        out = cli("task", "list", "--json", *args, actor=actor)
+        return sorted(t["title"] for t in json.loads(out))
+
+    cli("project", "add", "Demo")
+    for actor in ("claude", "Claude", "bot"):
+        cli("task", "add", "-p", "demo", "-t", "todo", f"by {actor}", actor=actor)
+
+    assert titles("--created-by", "claude") == ["by Claude", "by claude"]
+    assert titles("--created-by", "cla") == []
+    assert titles("--created-by", "claude", "--created-by", "bot") == ["by Claude", "by bot", "by claude"]
+    assert titles("--created-by", "claude", "-t", "bug") == []
+
+    assert titles("--mine", actor="claude") == ["by Claude", "by claude"]
+    assert titles("--mine", "--created-by", "bot", actor="claude") == ["by Claude", "by bot", "by claude"]
+    monkeypatch.setenv("OLOOP_ACTOR", "bot")
+    assert titles("--mine") == ["by bot"]
+    assert titles("--mine", actor="claude") == ["by Claude", "by claude"]
